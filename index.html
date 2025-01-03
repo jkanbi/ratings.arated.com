@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>User Profiles and Reviews</title>
+    <script src="https://cdn.jsdelivr.net/npm/vue@3"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f9f9f9;
+        }
+        header {
+            background-color: #808080;
+            color: white;
+            padding: 10px 0;
+            text-align: center;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        .review, .user-profile {
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            padding: 15px;
+            margin-bottom: 15px;
+            background-color: white;
+        }
+        .review:hover {
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        .rating-display {
+            display: inline-flex;
+            align-items: center;
+        }
+        .rating-letter {
+            display: inline-block;
+            width: 30px;
+            height: 30px;
+            text-align: center;
+            line-height: 30px;
+            font-weight: bold;
+            color: white;
+            border-radius: 50%;
+        }
+        .rating-A { background-color: #00A651; }
+        .rating-B { background-color: #50B848; }
+        .rating-C { background-color: #C3D94E; }
+        .rating-D { background-color: #FFF200; color: black; }
+        .rating-E { background-color: #FBB03B; }
+        .emoji {
+            margin-left: 10px;
+            font-size: 1.5em;
+        }
+        input, textarea, button {
+            margin: 5px 0;
+            padding: 5px;
+            width: 100%;
+            box-sizing: border-box;
+        }
+        button {
+            background-color: #0072c6;
+            color: white;
+            border: none;
+            padding: 10px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #005ea2;
+        }
+        .nav-buttons {
+            margin-bottom: 20px;
+        }
+        .nav-buttons button {
+            margin-right: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div id="app">
+        <header>
+            <h1>Ratings and Reviews</h1>
+        </header>
+        <div class="container">
+            <div class="nav-buttons">
+                <button @click="currentView = 'UserList'">Users</button>
+                <button @click="currentView = 'ReviewList'">All Reviews</button>
+            </div>
+            <component :is="currentView" 
+                       :users="users"
+                       :reviews="reviews"
+                       :selected-user="selectedUser"
+                       :selected-review="selectedReview"
+                       @view-user="viewUser"
+                       @view-review="viewReview"
+                       @add-user="addUser"
+                       @add-review="addReview"
+                       @remove-user="removeUser"
+                       @remove-review="removeReview"
+                       @back-to-list="backToList"></component>
+        </div>
+    </div>
+
+    <script>
+        const UserList = {
+            props: ['users'],
+            template: `
+                <div>
+                    <h2>User Profiles</h2>
+                    <div v-for="user in users" :key="user.id" class="user-profile" @click="$emit('view-user', user)">
+                        <h3>{{ user.name }}</h3>
+                        <p>{{ user.email }}</p>
+                    </div>
+                    <div>
+                        <h3>Add New User</h3>
+                        <input v-model="newUser.name" placeholder="Name" />
+                        <input v-model="newUser.email" placeholder="Email" />
+                        <button @click="submitUser">Add User</button>
+                    </div>
+                </div>
+            `,
+            data() {
+                return {
+                    newUser: { name: '', email: '' }
+                };
+            },
+            methods: {
+                submitUser() {
+                    if (this.newUser.name && this.newUser.email) {
+                        this.$emit('add-user', { ...this.newUser });
+                        this.newUser = { name: '', email: '' };
+                    } else {
+                        alert('Please fill in all fields.');
+                    }
+                }
+            }
+        };
+
+        const UserDetail = {
+            props: ['selectedUser', 'reviews'],
+            template: `
+                <div>
+                    <button @click="$emit('back-to-list')">Back to Users</button>
+                    <div class="user-profile">
+                        <h2>{{ selectedUser.name }}</h2>
+                        <p>{{ selectedUser.email }}</p>
+                        <button @click="$emit('remove-user', selectedUser.id)">Delete User</button>
+                    </div>
+                    <h3>User's Reviews</h3>
+                    <div v-for="review in userReviews" :key="review.id" class="review">
+                        <h3>{{ review.title }}</h3>
+                        <div class="rating-display">
+                            <span class="rating-letter" :class="'rating-' + getRatingLetter(review.rating)">
+                                {{ getRatingLetter(review.rating) }}
+                            </span>
+                            <span class="emoji">{{ getRatingEmoji(review.rating) }}</span>
+                        </div>
+                        <p>{{ review.content }}</p>
+                    </div>
+                </div>
+            `,
+            computed: {
+                userReviews() {
+                    return this.reviews.filter(review => review.userId === this.selectedUser.id);
+                }
+            },
+            methods: {
+                getRatingLetter(rating) {
+                    const letters = ['E', 'D', 'C', 'B', 'A'];
+                    return letters[rating - 1] || '?';
+                },
+                getRatingEmoji(rating) {
+                    const emojis = ['😞', '😕', '😐', '🙂', '😄'];
+                    return emojis[rating - 1] || '❓';
+                }
+            }
+        };
+
+        const ReviewList = {
+            props: ['reviews', 'users'],
+            template: `
+                <div>
+                    <div class="review-container">
+                        <div v-for="review in reviews" :key="review.id" class="review" @click="$emit('view-review', review)">
+                            <h3>{{ review.title }}</h3>
+                            <div class="rating-display">
+                                <span class="rating-letter" :class="'rating-' + getRatingLetter(review.rating)">
+                                    {{ getRatingLetter(review.rating) }}
+                                </span>
+                                <span class="emoji">{{ getRatingEmoji(review.rating) }}</span>
+                            </div>
+                            <p>{{ review.content }}</p>
+                            <p><em>- {{ getUserName(review.userId) }}</em></p>
+                        </div>
+                    </div>
+                    <div class="add-review">
+                        <h3>Add a Review</h3>
+                        <select v-model="newReview.userId">
+                            <option value="">Select User</option>
+                            <option v-for="user in users" :key="user.id" :value="user.id">{{ user.name }}</option>
+                        </select>
+                        <input v-model="newReview.title" placeholder="Review Title" />
+                        <div class="slider-container">
+                            <span>E</span>
+                            <input v-model="newReview.rating" type="range" min="1" max="5" step="1" />
+                            <span>A</span>
+                        </div>
+                        <div class="rating-display">
+                            <span class="rating-letter" :class="'rating-' + getRatingLetter(newReview.rating)">
+                                {{ getRatingLetter(newReview.rating) }}
+                            </span>
+                            <span class="emoji">{{ getRatingEmoji(newReview.rating) }}</span>
+                        </div>
+                        <textarea v-model="newReview.content" placeholder="Write your review here..."></textarea>
+                        <button @click="submitReview">Submit Review</button>
+                    </div>
+                </div>
+            `,
+            data() {
+                return {
+                    newReview: {
+                        userId: '',
+                        title: '',
+                        rating: 3,
+                        content: ''
+                    }
+                };
+            },
+            methods: {
+                getRatingLetter(rating) {
+                    const letters = ['E', 'D', 'C', 'B', 'A'];
+                    return letters[rating - 1] || '?';
+                },
+                getRatingEmoji(rating) {
+                    const emojis = ['😞', '😕', '😐', '🙂', '😄'];
+                    return emojis[rating - 1] || '❓';
+                },
+                getUserName(userId) {
+                    const user = this.users.find(u => u.id === userId);
+                    return user ? user.name : 'Unknown User';
+                },
+                submitReview() {
+                    if (this.newReview.userId && this.newReview.title && this.newReview.rating && this.newReview.content) {
+                        this.$emit('add-review', { ...this.newReview, rating: parseInt(this.newReview.rating) });
+                        this.newReview = { userId: '', title: '', rating: 3, content: '' };
+                    } else {
+                        alert('Please fill in all fields.');
+                    }
+                }
+            }
+        };
+
+        const ReviewDetail = {
+            props: ['selectedReview', 'users'],
+            template: `
+                <div>
+                    <button @click="$emit('back-to-list')">Back to Reviews</button>
+                    <div class="review">
+                        <h2>{{ selectedReview.title }}</h2>
+                        <div class="rating-display">
+                            <span class="rating-letter" :class="'rating-' + getRatingLetter(selectedReview.rating)">
+                                {{ getRatingLetter(selectedReview.rating) }}
+                            </span>
+                            <span class="emoji">{{ getRatingEmoji(selectedReview.rating) }}</span>
+                        </div>
+                        <p>{{ selectedReview.content }}</p>
+                        <p><em>- {{ getUserName(selectedReview.userId) }}</em></p>
+                        <p><strong>Date:</strong> {{ formatDate(selectedReview.id) }}</p>
+                    </div>
+                    <button @click="$emit('remove-review', selectedReview.id)">Delete Review</button>
+                </div>
+            `,
+            methods: {
+                getRatingLetter(rating) {
+                    const letters = ['E', 'D', 'C', 'B', 'A'];
+                    return letters[rating - 1] || '?';
+                },
+                getRatingEmoji(rating) {
+                    const emojis = ['😞', '😕', '😐', '🙂', '😄'];
+                    return emojis[rating - 1] || '❓';
+                },
+                formatDate(timestamp) {
+                    return new Date(timestamp).toLocaleString();
+                },
+                getUserName(userId) {
+                    const user = this.users.find(u => u.id === userId);
+                    return user ? user.name : 'Unknown User';
+                }
+            }
+        };
+
+        const app = Vue.createApp({
+            components: {
+                UserList,
+                UserDetail,
+                ReviewList,
+                ReviewDetail
+            },
+            data() {
+                return {
+                    users: this.loadUsers(),
+                    reviews: this.loadReviews(),
+                    currentView: 'UserList',
+                    selectedUser: null,
+                    selectedReview: null
+                };
+            },
+            methods: {
+                loadUsers() {
+                    const storedUsers = localStorage.getItem('users');
+                    return storedUsers ? JSON.parse(storedUsers) : [];
+                },
+                saveUsers() {
+                    localStorage.setItem('users', JSON.stringify(this.users));
+                },
+                loadReviews() {
+                    const storedReviews = localStorage.getItem('reviews');
+                    return storedReviews ? JSON.parse(storedReviews) : [];
+                },
+                saveReviews() {
+                    localStorage.setItem('reviews', JSON.stringify(this.reviews));
+                },
+                addUser(user) {
+                    user.id = Date.now();
+                    this.users.push(user);
+                    this.saveUsers();
+                },
+                removeUser(userId) {
+                    this.users = this.users.filter(user => user.id !== userId);
+                    this.reviews = this.reviews.filter(review => review.userId !== userId);
+                    this.saveUsers();
+                    this.saveReviews();
+                    this.backToList();
+                },
+                addReview(review) {
+                    review.id = Date.now();
+                    this.reviews.push(review);
+                    this.saveReviews();
+                },
+                removeReview(reviewId) {
+                    this.reviews = this.reviews.filter(review => review.id !== reviewId);
+                    this.saveReviews();
+                    this.backToList();
+                },
+                viewUser(user) {
+                    this.selectedUser = user;
+                    this.currentView = 'UserDetail';
+                },
+                viewReview(review) {
+                    this.selectedReview = review;
+                    this.currentView = 'ReviewDetail';
+                },
+                backToList() {
+                    this.currentView = this.currentView === 'UserDetail' ? 'UserList' : 'ReviewList';
+                    this.selectedUser = null;
+                    this.selectedReview = null;
+                }
+            }
+        });
+
+        app.mount('#app');
+    </script>
+</body>
+</html>
