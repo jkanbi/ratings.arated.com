@@ -204,9 +204,9 @@
                         </select>
                         <input v-model="newReview.title" placeholder="Review Title" />
                         <div class="slider-container">
-                            <span style="flex: 0 0 auto;">E</span>
+                            <span>E</span>
                             <input v-model="newReview.rating" type="range" min="1" max="5" step="1" />
-                            <span style="flex: 0 0 auto;">A</span>
+                            <span>A</span>
                         </div>
                         <div class="rating-display">
                             <span class="rating-letter" :class="'rating-' + getRatingLetter(newReview.rating)">
@@ -214,6 +214,10 @@
                             </span>
                             <span class="emoji">{{ getRatingEmoji(newReview.rating) }}</span>
                         </div>
+                        <textarea v-model="newReview.content" placeholder="Write your review here..."></textarea>
+                        <button @click="submitReview">Submit Review</button>
+                    </div>
+                </div>
             `,
             data() {
                 return {
