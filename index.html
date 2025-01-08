@@ -72,7 +72,7 @@
             background-color: #005ea2;
         }
         .nav-buttons {
-            margin-bottom: 20px;
+            marjin-bottom: 20px;
         }
         .nav-buttons button {
             margin-right: 10px;
@@ -85,6 +85,10 @@
         .slider-container {
 			display: flex; /* Use flexbox for better control over inline elements */
  			align-items: center; /* Vertically centers the children */
+		}
+		
+		.slider-label{
+			padding: 0px 20px 0px 20px;
 		}
 				
     </style>
@@ -215,16 +219,18 @@
                         </select>
                         <input v-model="newReview.title" placeholder="Review Title" />
                         <div class="slider-container">
-                            <span>E</span>
+                            <span class="slider-label">E</span>
                             <input v-model="newReview.rating" type="range" min="1" max="5" step="1" />
-                            <span>A</span>
+                            <span class="slider-label">A</span>
+                        
+							<div class="rating-display">
+								<span class="rating-letter" :class="'rating-' + getRatingLetter(newReview.rating)">
+									{{ getRatingLetter(newReview.rating) }}
+								</span>
+								<span class="emoji">{{ getRatingEmoji(newReview.rating) }}</span>
+							</div>
                         </div>
-                        <div class="rating-display">
-                            <span class="rating-letter" :class="'rating-' + getRatingLetter(newReview.rating)">
-                                {{ getRatingLetter(newReview.rating) }}
-                            </span>
-                            <span class="emoji">{{ getRatingEmoji(newReview.rating) }}</span>
-                        </div>
+                        
                         <textarea v-model="newReview.content" placeholder="Write your review here..."></textarea>
                         <button class="button-actions" @click="submitReview">Submit Review</button>
                     </div>
