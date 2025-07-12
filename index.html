@@ -531,8 +531,16 @@
                             <span style="background-color: #e9ecef; padding: 2px 6px; border-radius: 3px; margin-right: 10px;">
                                 {{ getRatingTypeLabel(review.ratingType) }}
                             </span>
-                            <span v-if="review.ratingType === 'product' && review.productBarcode" style="color: #007bff;">
-                                📦 {{ review.productBarcode }}
+                            <span v-if="review.ratingType === 'product' && review.productBarcode" style="color: #007bff; display: inline-flex; align-items: center;">
+                                📦 <a :href="'https://www.barcodelookup.com/' + review.productBarcode" target="_blank" style="color: #007bff; text-decoration: underline; display: inline;">{{ review.productBarcode }}</a>
+                                <button 
+                                    @click.stop="searchOnAmazon(review.productBarcode)" 
+                                    style="background: none; border: none; padding: 0 4px; margin: 0 0 0 4px; font-size: 1em; vertical-align: middle; color: #ff9900; cursor: pointer; display: inline-flex; align-items: center; line-height: 1;"
+                                    title="Search on Amazon"
+                                >
+                                    <span style="font-size:1em;">🔍</span>
+                                    <span style="font-size:0.95em; margin-left:2px;">Amazon</span>
+                                </button>
                             </span>
                         </div>
                         
@@ -561,6 +569,10 @@
                         'service': 'Service'
                     };
                     return labels[ratingType] || 'General';
+                },
+                searchOnAmazon(barcode) {
+                    const amazonSearchUrl = `https://www.amazon.com/s?k=${encodeURIComponent(barcode)}`;
+                    window.open(amazonSearchUrl, '_blank');
                 }
             }
         };
@@ -589,8 +601,16 @@
                                 <span style="background-color: #e9ecef; padding: 2px 6px; border-radius: 3px; margin-right: 10px;">
                                     {{ getRatingTypeLabel(review.ratingType) }}
                                 </span>
-                                <span v-if="review.ratingType === 'product' && review.productBarcode" style="color: #007bff;">
-                                    📦 {{ review.productBarcode }}
+                                <span v-if="review.ratingType === 'product' && review.productBarcode" style="color: #007bff; display: inline-flex; align-items: center;">
+                                    📦 <a :href="'https://www.barcodelookup.com/' + review.productBarcode" target="_blank" style="color: #007bff; text-decoration: underline; display: inline;">{{ review.productBarcode }}</a>
+                                    <button 
+                                        @click.stop="searchOnAmazon(review.productBarcode)" 
+                                        style="background: none; border: none; padding: 0 4px; margin: 0 0 0 4px; font-size: 1em; vertical-align: middle; color: #ff9900; cursor: pointer; display: inline-flex; align-items: center; line-height: 1;"
+                                        title="Search on Amazon"
+                                    >
+                                        <span style="font-size:1em;">🔍</span>
+                                        <span style="font-size:0.95em; margin-left:2px;">Amazon</span>
+                                    </button>
                                 </span>
                             </div>
                             
@@ -646,6 +666,26 @@
                                     </button>
                                 </div>
                                 
+                                <!-- Image Upload Scanner -->
+                                <div style="margin-bottom: 15px;">
+                                    <label style="display: block; margin-bottom: 5px; font-weight: bold;">Upload Barcode Image:</label>
+                                    <div style="display: flex; gap: 10px; align-items: center;">
+                                        <input 
+                                            type="file" 
+                                            accept="image/*" 
+                                            @change="handleImageUpload" 
+                                            style="flex: 1;"
+                                            ref="imageUpload"
+                                        />
+                                        <button type="button" class="scan-button" @click="$refs.imageUpload.click()" style="white-space: nowrap;">
+                                            📁 Choose Image
+                                        </button>
+                                    </div>
+                                    <p v-if="imagePreview" style="margin-top: 5px; font-size: 0.9em; color: #666;">
+                                        Image loaded: {{ imagePreview.name }}
+                                    </p>
+                                </div>
+                                
                                 <div class="barcode-info">
                                     <p><strong>Supported formats:</strong> EAN-13, UPC-A, UPC-E, Code 128, Code 39</p>
                                     <p v-if="newReview.productBarcode"><strong>Current barcode:</strong> {{ newReview.productBarcode }}</p>
@@ -696,7 +736,8 @@
                     expandedReviews: [],
                     showScanner: false,
                     barcodeBuffer: '',
-                    barcodeTimeout: null
+                    barcodeTimeout: null,
+                    imagePreview: null
                 };
             },
             methods: {
@@ -719,6 +760,10 @@
                         'service': 'Service'
                     };
                     return labels[ratingType] || 'General';
+                },
+                searchOnAmazon(barcode) {
+                    const amazonSearchUrl = `https://www.amazon.com/s?k=${encodeURIComponent(barcode)}`;
+                    window.open(amazonSearchUrl, '_blank');
                 },
                 submitReview() {
                     if (this.newReview.userId && this.newReview.title && this.newReview.rating && this.newReview.content) {
@@ -855,6 +900,84 @@
                     if (Quagga) {
                         Quagga.stop();
                     }
+                },
+                handleImageUpload(event) {
+                    const file = event.target.files[0];
+                    if (!file) return;
+                    
+                    // Validate file type
+                    if (!file.type.startsWith('image/')) {
+                        alert('Please select an image file.');
+                        return;
+                    }
+                    
+                    // Validate file size (max 5MB)
+                    if (file.size > 5 * 1024 * 1024) {
+                        alert('Image file is too large. Please select an image smaller than 5MB.');
+                        return;
+                    }
+                    
+                    this.imagePreview = file;
+                    
+                    // Create a canvas to process the image
+                    const canvas = document.createElement('canvas');
+                    const ctx = canvas.getContext('2d');
+                    const img = new Image();
+                    
+                    img.onload = () => {
+                        // Set canvas size to image size
+                        canvas.width = img.width;
+                        canvas.height = img.height;
+                        
+                        // Draw image on canvas
+                        ctx.drawImage(img, 0, 0);
+                        
+                        // Get image data for barcode detection
+                        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                        
+                        // Use Quagga to decode the image
+                        Quagga.decodeSingle({
+                            decoder: {
+                                readers: [
+                                    "ean_reader",
+                                    "ean_8_reader", 
+                                    "upc_reader",
+                                    "upc_e_reader",
+                                    "code_128_reader",
+                                    "code_39_reader"
+                                ]
+                            },
+                            locate: true,
+                            src: canvas.toDataURL()
+                        }, (result) => {
+                            if (result && result.codeResult) {
+                                const barcode = result.codeResult.code;
+                                console.log('Barcode detected from image:', barcode);
+                                
+                                if (this.isValidBarcode(barcode)) {
+                                    this.newReview.productBarcode = barcode;
+                                    alert(`Barcode detected successfully: ${barcode}`);
+                                } else {
+                                    alert('Invalid barcode format detected. Please try a different image.');
+                                }
+                            } else {
+                                alert('No barcode found in the image. Please try a clearer image of the barcode.');
+                            }
+                            
+                            // Clear the file input
+                            event.target.value = '';
+                            this.imagePreview = null;
+                        });
+                    };
+                    
+                    img.onerror = () => {
+                        alert('Failed to load image. Please try a different file.');
+                        event.target.value = '';
+                        this.imagePreview = null;
+                    };
+                    
+                    // Load the image
+                    img.src = URL.createObjectURL(file);
                 }
             }
         };
@@ -876,8 +999,17 @@
                         <!-- Rating Type and Product Info -->
                         <div v-if="selectedReview.ratingType" style="margin: 10px 0; padding: 10px; background-color: #f8f9fa; border-radius: 5px;">
                             <p><strong>Rating Type:</strong> {{ getRatingTypeLabel(selectedReview.ratingType) }}</p>
-                            <p v-if="selectedReview.ratingType === 'product' && selectedReview.productBarcode">
-                                <strong>Product Barcode:</strong> {{ selectedReview.productBarcode }}
+                            <p v-if="selectedReview.ratingType === 'product' && selectedReview.productBarcode" style="display: flex; align-items: center; gap: 0;">
+                                <strong>Product Barcode:</strong>
+                                <a :href="'https://www.barcodelookup.com/' + selectedReview.productBarcode" target="_blank" style="color: #007bff; text-decoration: underline; display: inline; margin-left: 4px;">{{ selectedReview.productBarcode }}</a>
+                                <button 
+                                    @click="searchOnAmazon(selectedReview.productBarcode)" 
+                                    style="background: none; border: none; padding: 0 4px; margin: 0 0 0 4px; font-size: 1em; vertical-align: middle; color: #ff9900; cursor: pointer; display: inline-flex; align-items: center; line-height: 1;"
+                                    title="Search on Amazon"
+                                >
+                                    <span style="font-size:1em;">🔍</span>
+                                    <span style="font-size:0.95em; margin-left:2px;">Amazon</span>
+                                </button>
                             </p>
                         </div>
                         
@@ -903,6 +1035,14 @@
                 getUserName(userId) {
                     const user = this.users.find(u => u.id === userId);
                     return user ? user.name : 'Unknown User';
+                },
+                getRatingTypeLabel(ratingType) {
+                    const labels = {
+                        'general': 'General',
+                        'product': 'Product',
+                        'service': 'Service'
+                    };
+                    return labels[ratingType] || 'General';
                 }
             }
         };
