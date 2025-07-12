@@ -854,9 +854,8 @@
                             type: "LiveStream",
                             target: "#scanner-video",
                             constraints: {
-                                width: { min: 400 },
-                                height: { min: 300 },
-                                facingMode: "environment" // Use back camera on mobile
+                                facingMode: "environment"
+                                // width and height removed for mobile compatibility
                             },
                         },
                         decoder: {
