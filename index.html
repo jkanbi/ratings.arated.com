@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>User Profiles and Reviews</title>
     <script src="https://cdn.jsdelivr.net/npm/vue@3"></script>
+    <script src="https://cdn.jsdelivr.net/npm/quagga@0.12.1/dist/quagga.min.js"></script>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -162,6 +163,106 @@
 		
 		.slider-label{
 			padding: 0px 20px 0px 20px;
+		}
+		
+		.rating-type-container {
+			margin: 10px 0;
+			padding: 10px;
+			background-color: #f8f9fa;
+			border-radius: 5px;
+		}
+		
+
+		
+		.barcode-section {
+			margin: 10px 0;
+			padding: 10px;
+			background-color: #e9ecef;
+			border-radius: 5px;
+			border: 1px solid #dee2e6;
+		}
+		
+		.barcode-input-group {
+			display: flex;
+			gap: 10px;
+			align-items: center;
+		}
+		
+		.barcode-input-group input {
+			flex: 1;
+		}
+		
+		.scan-button {
+			background-color: #28a745;
+			color: white;
+			border: none;
+			padding: 8px 15px;
+			border-radius: 5px;
+			cursor: pointer;
+			white-space: nowrap;
+		}
+		
+		.scan-button:hover {
+			background-color: #218838;
+		}
+		
+		.barcode-info {
+			font-size: 0.9em;
+			color: #666;
+			margin-top: 5px;
+		}
+		
+		.scanner-modal {
+			position: fixed;
+			top: 0;
+			left: 0;
+			width: 100%;
+			height: 100%;
+			background-color: rgba(0, 0, 0, 0.8);
+			z-index: 1000;
+			display: flex;
+			flex-direction: column;
+			align-items: center;
+			justify-content: center;
+		}
+		
+		.scanner-container {
+			background-color: white;
+			border-radius: 10px;
+			padding: 20px;
+			max-width: 90%;
+			max-height: 80%;
+			overflow: hidden;
+		}
+		
+		.scanner-video {
+			width: 100%;
+			max-width: 400px;
+			height: 300px;
+			background-color: #000;
+			border-radius: 5px;
+		}
+		
+		.scanner-controls {
+			margin-top: 15px;
+			text-align: center;
+		}
+		
+		.scanner-controls button {
+			margin: 0 5px;
+			padding: 8px 15px;
+			border: none;
+			border-radius: 5px;
+			cursor: pointer;
+		}
+		
+		.close-scanner {
+			background-color: #dc3545;
+			color: white;
+		}
+		
+		.close-scanner:hover {
+			background-color: #c82333;
 		}
 				
     </style>
@@ -424,6 +525,17 @@
                             </span>
                             <span class="emoji">{{ getRatingEmoji(review.rating) }}</span>
                         </div>
+                        
+                        <!-- Rating Type and Product Info -->
+                        <div v-if="review.ratingType" style="margin: 5px 0; font-size: 0.9em; color: #666;">
+                            <span style="background-color: #e9ecef; padding: 2px 6px; border-radius: 3px; margin-right: 10px;">
+                                {{ getRatingTypeLabel(review.ratingType) }}
+                            </span>
+                            <span v-if="review.ratingType === 'product' && review.productBarcode" style="color: #007bff;">
+                                📦 {{ review.productBarcode }}
+                            </span>
+                        </div>
+                        
                         <p>{{ review.content }}</p>
                     </div>
                 </div>
@@ -441,6 +553,14 @@
                 getRatingEmoji(rating) {
                     const emojis = ['😞', '😕', '😐', '🙂', '😄'];
                     return emojis[rating - 1] || '❓';
+                },
+                getRatingTypeLabel(ratingType) {
+                    const labels = {
+                        'general': 'General',
+                        'product': 'Product',
+                        'service': 'Service'
+                    };
+                    return labels[ratingType] || 'General';
                 }
             }
         };
@@ -463,6 +583,17 @@
                                     <span class="review-user">{{ getUserName(review.userId) }}</span>
                                 </div>
                             </div>
+                            
+                            <!-- Rating Type and Product Info -->
+                            <div v-if="review.ratingType" style="margin: 5px 0; font-size: 0.9em; color: #666;">
+                                <span style="background-color: #e9ecef; padding: 2px 6px; border-radius: 3px; margin-right: 10px;">
+                                    {{ getRatingTypeLabel(review.ratingType) }}
+                                </span>
+                                <span v-if="review.ratingType === 'product' && review.productBarcode" style="color: #007bff;">
+                                    📦 {{ review.productBarcode }}
+                                </span>
+                            </div>
+                            
                             <div class="review-content" @click.stop="toggleReview(review.id)" v-if="review.content.length > 100">
                                 <div :class="expandedReviews.includes(review.id) ? 'review-full' : 'review-excerpt'">
                                     {{ review.content }}
@@ -482,6 +613,46 @@
                             <option v-for="user in users" :key="user.id" :value="user.id">{{ user.name }}</option>
                         </select>
                         <input v-model="newReview.title" placeholder="Review Title" />
+                        
+                        <!-- Rating Type Selector -->
+                        <div class="rating-type-container">
+                            <h4>Rating Type</h4>
+                            <select v-model="newReview.ratingType" style="width: 100%; margin-bottom: 10px;">
+                                <option value="general">General Review</option>
+                                <option value="product">Product Review</option>
+                                <option value="service">Service Review</option>
+                            </select>
+                            
+                            <!-- Product Barcode Section -->
+                            <div v-if="newReview.ratingType === 'product'" class="barcode-section">
+                                <h5>Product Information</h5>
+                                
+                                <!-- Manual Entry -->
+                                <div style="margin-bottom: 15px;">
+                                    <label style="display: block; margin-bottom: 5px; font-weight: bold;">Manual Entry:</label>
+                                    <input 
+                                        v-model="newReview.productBarcode" 
+                                        placeholder="Type barcode here (EAN-13, UPC-A, etc.)" 
+                                        @keypress="handleBarcodeKeypress"
+                                        style="width: 100%;"
+                                    />
+                                </div>
+                                
+                                <!-- Camera Scanner -->
+                                <div style="margin-bottom: 15px;">
+                                    <label style="display: block; margin-bottom: 5px; font-weight: bold;">Camera Scanner:</label>
+                                    <button type="button" class="scan-button" @click="startBarcodeScan" style="width: 100%;">
+                                        📷 Scan with Camera
+                                    </button>
+                                </div>
+                                
+                                <div class="barcode-info">
+                                    <p><strong>Supported formats:</strong> EAN-13, UPC-A, UPC-E, Code 128, Code 39</p>
+                                    <p v-if="newReview.productBarcode"><strong>Current barcode:</strong> {{ newReview.productBarcode }}</p>
+                                </div>
+                            </div>
+                        </div>
+                        
                         <div class="slider-container">
                             <span class="slider-label">E</span>
                             <input v-model="newReview.rating" type="range" min="1" max="5" step="1" />
@@ -498,6 +669,18 @@
                         <textarea v-model="newReview.content" placeholder="Write your review here..."></textarea>
                         <button class="button-actions" @click="submitReview">Submit Review</button>
                     </div>
+                    
+                    <!-- Barcode Scanner Modal -->
+                    <div v-if="showScanner" class="scanner-modal" @click="closeScanner">
+                        <div class="scanner-container" @click.stop>
+                            <h3>Scan Barcode</h3>
+                            <p style="margin-bottom: 15px; color: #666;">Point your camera at a barcode</p>
+                            <video id="scanner-video" class="scanner-video"></video>
+                            <div class="scanner-controls">
+                                <button class="close-scanner" @click="closeScanner">Close Scanner</button>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             `,
             data() {
@@ -506,9 +689,14 @@
                         userId: '',
                         title: '',
                         rating: 3,
-                        content: ''
+                        content: '',
+                        ratingType: 'general',
+                        productBarcode: ''
                     },
-                    expandedReviews: []
+                    expandedReviews: [],
+                    showScanner: false,
+                    barcodeBuffer: '',
+                    barcodeTimeout: null
                 };
             },
             methods: {
@@ -524,10 +712,35 @@
                     const user = this.users.find(u => u.id === userId);
                     return user ? user.name : 'Unknown User';
                 },
+                getRatingTypeLabel(ratingType) {
+                    const labels = {
+                        'general': 'General',
+                        'product': 'Product',
+                        'service': 'Service'
+                    };
+                    return labels[ratingType] || 'General';
+                },
                 submitReview() {
                     if (this.newReview.userId && this.newReview.title && this.newReview.rating && this.newReview.content) {
-                        this.$emit('add-review', { ...this.newReview, rating: parseInt(this.newReview.rating) });
-                        this.newReview = { userId: '', title: '', rating: 3, content: '' };
+                        // Validate product barcode if rating type is product
+                        if (this.newReview.ratingType === 'product' && !this.newReview.productBarcode) {
+                            alert('Please enter or scan a product barcode for product reviews.');
+                            return;
+                        }
+                        
+                        this.$emit('add-review', { 
+                            ...this.newReview, 
+                            rating: parseInt(this.newReview.rating),
+                            productBarcode: this.newReview.ratingType === 'product' ? this.newReview.productBarcode : null
+                        });
+                        this.newReview = { 
+                            userId: '', 
+                            title: '', 
+                            rating: 3, 
+                            content: '', 
+                            ratingType: 'general',
+                            productBarcode: ''
+                        };
                     } else {
                         alert('Please fill in all fields.');
                     }
@@ -538,6 +751,109 @@
                         this.expandedReviews.splice(index, 1);
                     } else {
                         this.expandedReviews.push(reviewId);
+                    }
+                },
+                startBarcodeScan() {
+                    // Check if device has camera
+                    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+                        alert('Camera access not available. Please enter the barcode manually.');
+                        return;
+                    }
+                    
+                    this.showScanner = true;
+                    this.$nextTick(() => {
+                        this.initScanner();
+                    });
+                },
+                handleBarcodeKeypress(event) {
+                    // Handle barcode scanner input (barcode scanners typically send data as keyboard input)
+                    if (event.key === 'Enter') {
+                        event.preventDefault();
+                        // Process the barcode
+                        this.processBarcode(this.newReview.productBarcode);
+                    }
+                },
+                processBarcode(barcode) {
+                    // Validate barcode format
+                    if (this.isValidBarcode(barcode)) {
+                        this.newReview.productBarcode = barcode;
+                        console.log('Valid barcode scanned:', barcode);
+                    } else {
+                        alert('Invalid barcode format. Please check the barcode and try again.');
+                    }
+                },
+                isValidBarcode(barcode) {
+                    if (!barcode || barcode.length < 8) return false;
+                    
+                    // Basic validation for common barcode formats
+                    const barcodeStr = barcode.toString();
+                    
+                    // EAN-13: 13 digits
+                    if (/^\d{13}$/.test(barcodeStr)) return true;
+                    
+                    // UPC-A: 12 digits
+                    if (/^\d{12}$/.test(barcodeStr)) return true;
+                    
+                    // UPC-E: 8 digits
+                    if (/^\d{8}$/.test(barcodeStr)) return true;
+                    
+                    // Allow other formats (could be expanded)
+                    if (/^\d{8,14}$/.test(barcodeStr)) return true;
+                    
+                    return false;
+                },
+                initScanner() {
+                    Quagga.init({
+                        inputStream: {
+                            name: "Live",
+                            type: "LiveStream",
+                            target: "#scanner-video",
+                            constraints: {
+                                width: { min: 400 },
+                                height: { min: 300 },
+                                facingMode: "environment" // Use back camera on mobile
+                            },
+                        },
+                        decoder: {
+                            readers: [
+                                "ean_reader",
+                                "ean_8_reader",
+                                "upc_reader",
+                                "upc_e_reader",
+                                "code_128_reader",
+                                "code_39_reader"
+                            ]
+                        }
+                    }, (err) => {
+                        if (err) {
+                            console.error('Scanner initialization failed:', err);
+                            alert('Failed to initialize camera scanner. Please enter barcode manually.');
+                            this.closeScanner();
+                            return;
+                        }
+                        
+                        console.log('Scanner initialized successfully');
+                        Quagga.start();
+                        
+                        // Listen for scan results
+                        Quagga.onDetected((result) => {
+                            const barcode = result.codeResult.code;
+                            console.log('Barcode detected:', barcode);
+                            
+                            if (this.isValidBarcode(barcode)) {
+                                this.newReview.productBarcode = barcode;
+                                this.closeScanner();
+                                alert(`Barcode scanned successfully: ${barcode}`);
+                            } else {
+                                alert('Invalid barcode format. Please try again.');
+                            }
+                        });
+                    });
+                },
+                closeScanner() {
+                    this.showScanner = false;
+                    if (Quagga) {
+                        Quagga.stop();
                     }
                 }
             }
@@ -556,6 +872,15 @@
                             </span>
                             <span class="emoji">{{ getRatingEmoji(selectedReview.rating) }}</span>
                         </div>
+                        
+                        <!-- Rating Type and Product Info -->
+                        <div v-if="selectedReview.ratingType" style="margin: 10px 0; padding: 10px; background-color: #f8f9fa; border-radius: 5px;">
+                            <p><strong>Rating Type:</strong> {{ getRatingTypeLabel(selectedReview.ratingType) }}</p>
+                            <p v-if="selectedReview.ratingType === 'product' && selectedReview.productBarcode">
+                                <strong>Product Barcode:</strong> {{ selectedReview.productBarcode }}
+                            </p>
+                        </div>
+                        
                         <p>{{ selectedReview.content }}</p>
                         <p><em>- {{ getUserName(selectedReview.userId) }}</em></p>
                         <p><strong>Date:</strong> {{ formatDate(selectedReview.id) }}</p>
