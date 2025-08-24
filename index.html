@@ -245,6 +245,40 @@
             margin-left: 60px;
         }
         
+        /* Breadcrumb Navigation */
+        .breadcrumb-nav {
+            margin-bottom: 20px;
+            padding: 15px 0;
+            border-bottom: 1px solid #e9ecef;
+        }
+        
+        .breadcrumb-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 6px;
+            padding: 10px 15px;
+            color: #495057;
+            text-decoration: none;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-size: 14px;
+            font-weight: 500;
+        }
+        
+        .breadcrumb-btn:hover {
+            background: #e9ecef;
+            border-color: #adb5bd;
+            transform: translateX(-2px);
+        }
+        
+        .breadcrumb-btn span:first-child {
+            font-size: 18px;
+            font-weight: bold;
+        }
+        
 
         
         .emoji {
@@ -503,6 +537,13 @@
                         <span v-if="!sidebarCollapsed" class="nav-text">Reviews</span>
                     </a>
                     <a href="#" 
+                       @click.prevent="currentView = 'AddReview'" 
+                       :class="{ 'active': currentView === 'AddReview' }"
+                       class="nav-item">
+                        <span class="nav-icon">➕</span>
+                        <span v-if="!sidebarCollapsed" class="nav-text">Add Review</span>
+                    </a>
+                    <a href="#" 
                        @click.prevent="currentView = 'AdminPanel'" 
                        :class="{ 'active': currentView === 'AdminPanel' }"
                        class="nav-item">
@@ -574,130 +615,13 @@
             }
         };
 
-        const UserDetail = {
-            props: ['selectedUser', 'reviews'],
+        const AddReview = {
+            props: ['users'],
             template: `
                 <div>
-                    <button @click="$emit('back-to-list')">Back to Users</button>
-                    <div class="user-profile">
-                        <h2>{{ selectedUser.name }}</h2>
-                        <p>{{ selectedUser.email }}</p>
-                        <button class="button-actions" @click="$emit('remove-user', selectedUser.id)">Delete User</button>
-                    </div>
-                    <h3>User's Reviews</h3>
-                    <div v-for="review in userReviews" :key="review.id" class="review">
-                        <h3>{{ review.title }}</h3>
-                        <div class="rating-display">
-                            <span class="rating-letter" :class="'rating-' + getRatingLetter(review.rating)">
-                                {{ getRatingLetter(review.rating) }}
-                            </span>
-                            <span class="emoji">{{ getRatingEmoji(review.rating) }}</span>
-                        </div>
-                        
-                        <!-- Rating Type and Product Info -->
-                        <div v-if="review.ratingType" style="margin: 5px 0; font-size: 0.9em; color: #666;">
-                            <span style="background-color: #e9ecef; padding: 2px 6px; border-radius: 3px; margin-right: 10px;">
-                                {{ getRatingTypeLabel(review.ratingType) }}
-                            </span>
-                            <span v-if="review.ratingType === 'product' && review.productBarcode" style="color: #007bff; display: inline-flex; align-items: center;">
-                                📦 <a :href="'https://www.barcodelookup.com/' + review.productBarcode" target="_blank" style="color: #007bff; text-decoration: underline; display: inline;">{{ review.productBarcode }}</a>
-                                <button 
-                                    @click.stop="searchOnAmazon(review.productBarcode)" 
-                                    style="background: none; border: none; padding: 0 4px; margin: 0 0 0 4px; font-size: 1em; vertical-align: middle; color: #ff9900; cursor: pointer; display: inline-flex; align-items: center; line-height: 1;"
-                                    title="Search on Amazon"
-                                >
-                                    <span style="font-size:1em;">🔍</span>
-                                    <span style="font-size:0.95em; margin-left:2px;">Amazon</span>
-                                </button>
-                            </span>
-                        </div>
-                        
-                        <p>{{ review.content }}</p>
-                    </div>
-                </div>
-            `,
-            computed: {
-                userReviews() {
-                    return this.reviews.filter(review => review.userId === this.selectedUser.id);
-                }
-            },
-            methods: {
-                getRatingLetter(rating) {
-                    const letters = ['E', 'D', 'C', 'B', 'A'];
-                    return letters[rating - 1] || '?';
-                },
-                getRatingEmoji(rating) {
-                    const emojis = ['😞', '😕', '😐', '🙂', '😄'];
-                    return emojis[rating - 1] || '❓';
-                },
-                getRatingTypeLabel(ratingType) {
-                    const labels = {
-                        'general': 'General',
-                        'product': 'Product',
-                        'service': 'Service'
-                    };
-                    return labels[ratingType] || 'General';
-                },
-                searchOnAmazon(barcode) {
-                    const amazonSearchUrl = `https://www.amazon.com/s?k=${encodeURIComponent(barcode)}`;
-                    window.open(amazonSearchUrl, '_blank');
-                }
-            }
-        };
-
-        const ReviewList = {
-            props: ['reviews', 'users'],
-            template: `
-                <div>
-
+                    <h2>Add New Review</h2>
                     
-                    <div class="review-container">
-                        <div v-for="review in reviews" :key="review.id" class="review" @click="$emit('view-review', review)">
-                            <div class="review-header">
-                                <h3 class="review-title">{{ review.title }}</h3>
-                                <div class="review-meta">
-                                    <div class="rating-display">
-                                        <span class="rating-letter" :class="'rating-' + getRatingLetter(review.rating)">
-                                            {{ getRatingLetter(review.rating) }}
-                                        </span>
-                                        <span class="emoji">{{ getRatingEmoji(review.rating) }}</span>
-                                    </div>
-                                    <span class="review-user">{{ getUserName(review.userId) }}</span>
-                                </div>
-                            </div>
-                            
-                            <!-- Rating Type and Product Info -->
-                            <div v-if="review.ratingType" style="margin: 5px 0; font-size: 0.9em; color: #666;">
-                                <span style="background-color: #e9ecef; padding: 2px 6px; border-radius: 3px; margin-right: 10px;">
-                                    {{ getRatingTypeLabel(review.ratingType) }}
-                                </span>
-                                <span v-if="review.ratingType === 'product' && review.productBarcode" style="color: #007bff; display: inline-flex; align-items: center;">
-                                    📦 <a :href="'https://www.barcodelookup.com/' + review.productBarcode" target="_blank" style="color: #007bff; text-decoration: underline; display: inline;">{{ review.productBarcode }}</a>
-                                    <button 
-                                        @click.stop="searchOnAmazon(review.productBarcode)" 
-                                        style="background: none; border: none; padding: 0 4px; margin: 0 0 0 4px; font-size: 1em; vertical-align: middle; color: #ff9900; cursor: pointer; display: inline-flex; align-items: center; line-height: 1;"
-                                        title="Search on Amazon"
-                                    >
-                                        <span style="font-size:1em;">🔍</span>
-                                        <span style="font-size:0.95em; margin-left:2px;">Amazon</span>
-                                    </button>
-                                </span>
-                            </div>
-                            
-                            <div class="review-content" @click.stop="toggleReview(review.id)" v-if="review.content.length > 100">
-                                <div :class="expandedReviews.includes(review.id) ? 'review-full' : 'review-excerpt'">
-                                    {{ review.content }}
-                                </div>
-                            </div>
-                            <div class="review-content" v-else>
-                                <div class="review-full">
-                                    {{ review.content }}
-                                </div>
-                            </div>
-                        </div>
-                    </div>
                     <div class="add-review">
-                        <h3>Add a Review</h3>
                         <select v-model="newReview.userId">
                             <option value="">Select User</option>
                             <option v-for="user in users" :key="user.id" :value="user.id">{{ user.name }}</option>
@@ -832,7 +756,6 @@
                         ratingType: 'general',
                         productBarcode: ''
                     },
-                    expandedReviews: [],
                     showScanner: false,
                     barcodeBuffer: '',
                     barcodeTimeout: null,
@@ -848,10 +771,6 @@
                 getRatingEmoji(rating) {
                     const emojis = ['😞', '😕', '😐', '🙂', '😄'];
                     return emojis[rating - 1] || '❓';
-                },
-                getUserName(userId) {
-                    const user = this.users.find(u => u.id === userId);
-                    return user ? user.name : 'Unknown User';
                 },
                 getRatingTypeLabel(ratingType) {
                     const labels = {
@@ -890,13 +809,53 @@
                         alert('Please fill in all fields.');
                     }
                 },
-                toggleReview(reviewId) {
-                    const index = this.expandedReviews.indexOf(reviewId);
-                    if (index > -1) {
-                        this.expandedReviews.splice(index, 1);
-                    } else {
-                        this.expandedReviews.push(reviewId);
+                selectRating(rating) {
+                    this.newReview.rating = rating;
+                    this.updateCircleColors(rating);
+                },
+                hoverRating(rating) {
+                    this.tempRating = rating;
+                    this.updateCircleColors(rating);
+                },
+                clearHover() {
+                    this.tempRating = null;
+                    this.updateCircleColors(this.newReview.rating);
+                },
+                updateCircleColors(rating) {
+                    const circles = document.querySelectorAll('.rating-circles .circle');
+                    const colorsByRatingCount = {
+                        1: '#ff4d4d',    // red
+                        2: '#ff964d',    // orange
+                        3: '#ffdb4d',    // amber
+                        4: '#b8e04d',    // light green
+                        5: '#4caf50'     // dark green
+                    };
+                    
+                    circles.forEach((circle, index) => {
+                        if (index < rating) {
+                            circle.style.backgroundColor = colorsByRatingCount[rating];
+                            circle.style.borderColor = colorsByRatingCount[rating];
+                        } else {
+                            circle.style.backgroundColor = '#eee';
+                            circle.style.borderColor = '#ccc';
+                        }
+                    });
+                },
+                handleBarcodeKeypress(event) {
+                    if (event.key === 'Enter') {
+                        const barcode = event.target.value.trim();
+                        if (this.isValidBarcode(barcode)) {
+                            this.newReview.productBarcode = barcode;
+                            alert(`Barcode entered: ${barcode}`);
+                        } else {
+                            alert('Invalid barcode format. Please enter a valid barcode.');
+                        }
                     }
+                },
+                isValidBarcode(barcode) {
+                    // Basic validation for common barcode formats
+                    const barcodeRegex = /^[0-9]{8,13}$/;
+                    return barcodeRegex.test(barcode);
                 },
                 startBarcodeScan() {
                     // Check if device has camera
@@ -907,15 +866,308 @@
                     
                     this.showScanner = true;
                     this.$nextTick(() => {
-                        this.initScanner();
+                        Quagga.init({
+                            inputStream: {
+                                name: "Live",
+                                type: "LiveStream",
+                                target: document.querySelector('#scanner-video'),
+                                constraints: {
+                                    width: { min: 640 },
+                                    height: { min: 480 },
+                                    facingMode: "environment"
+                                },
+                            },
+                            locator: {
+                                patchSize: "medium",
+                                halfSample: true
+                            },
+                            numOfWorkers: 2,
+                            frequency: 10,
+                            decoder: {
+                                readers: [
+                                    "ean_reader",
+                                    "ean_8_reader",
+                                    "upc_reader",
+                                    "upc_e_reader",
+                                    "code_128_reader",
+                                    "code_39_reader"
+                                ]
+                            }
+                        }, (err) => {
+                            if (err) {
+                                console.error('Scanner initialization failed:', err);
+                                alert('Failed to initialize camera scanner. Please enter barcode manually.');
+                                this.closeScanner();
+                                return;
+                            }
+                            
+                            console.log('Scanner initialized successfully');
+                            Quagga.start();
+                            
+                            // Listen for scan results
+                            Quagga.onDetected((result) => {
+                                const barcode = result.codeResult.code;
+                                console.log('Barcode detected:', barcode);
+                                
+                                if (this.isValidBarcode(barcode)) {
+                                    this.newReview.productBarcode = barcode;
+                                    this.closeScanner();
+                                    alert(`Barcode scanned successfully: ${barcode}`);
+                                } else {
+                                    alert('Invalid barcode format. Please try again.');
+                                }
+                            });
+                        });
                     });
                 },
-                handleBarcodeKeypress(event) {
-                    // Handle barcode scanner input (barcode scanners typically send data as keyboard input)
-                    if (event.key === 'Enter') {
-                        event.preventDefault();
-                        // Process the barcode
-                        this.processBarcode(this.newReview.productBarcode);
+                closeScanner() {
+                    this.showScanner = false;
+                    if (Quagga) {
+                        Quagga.stop();
+                    }
+                },
+                handleImageUpload(event) {
+                    const file = event.target.files[0];
+                    if (!file) return;
+                    
+                    // Validate file type
+                    if (!file.type.startsWith('image/')) {
+                        alert('Please select an image file.');
+                        return;
+                    }
+                    
+                    // Validate file size (max 5MB)
+                    if (file.size > 5 * 1024 * 1024) {
+                        alert('Image file is too large. Please select an image smaller than 5MB.');
+                        file.value = '';
+                        this.imagePreview = null;
+                        return;
+                    }
+                    
+                    this.imagePreview = file;
+                    
+                    // Create a canvas to process the image
+                    const canvas = document.createElement('canvas');
+                    const ctx = canvas.getContext('2d');
+                    const img = new Image();
+                    
+                    img.onload = () => {
+                        // Set canvas size to image size
+                        canvas.width = img.width;
+                        canvas.height = img.height;
+                        
+                        // Draw image on canvas
+                        ctx.drawImage(img, 0, 0);
+                        
+                        // Get image data for barcode detection
+                        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                        
+                        // Use Quagga to decode the image
+                        Quagga.decodeSingle({
+                            decoder: {
+                                readers: [
+                                    "ean_reader",
+                                    "ean_8_reader", 
+                                    "upc_reader",
+                                    "upc_e_reader",
+                                    "code_128_reader",
+                                    "code_39_reader"
+                                ]
+                            },
+                            locate: true,
+                            src: canvas.toDataURL()
+                        }, (result) => {
+                            if (result && result.codeResult) {
+                                const barcode = result.codeResult.code;
+                                console.log('Barcode detected from image:', barcode);
+                                
+                                if (this.isValidBarcode(barcode)) {
+                                    this.newReview.productBarcode = barcode;
+                                    alert(`Barcode detected successfully: ${barcode}`);
+                                } else {
+                                    alert('Invalid barcode format. Please try again.');
+                                }
+                            } else {
+                                alert('No barcode detected in the image. Please try a different image.');
+                            }
+                        });
+                    };
+                    
+                    img.onerror = () => {
+                        alert('Failed to load image. Please try a different file.');
+                        event.target.value = '';
+                        this.imagePreview = null;
+                    };
+                    
+                    // Load the image
+                    img.src = URL.createObjectURL(file);
+                }
+            },
+            mounted() {
+                this.updateCircleColors(this.newReview.rating);
+            }
+        };
+
+        const UserDetail = {
+            props: ['selectedUser', 'reviews'],
+            template: `
+                <div>
+                    <button @click="$emit('back-to-list')">Back to Users</button>
+                    <div class="user-profile">
+                        <h2>{{ selectedUser.name }}</h2>
+                        <p>{{ selectedUser.email }}</p>
+                        <button class="button-actions" @click="$emit('remove-user', selectedUser.id)">Delete User</button>
+                    </div>
+                    <h3>User's Reviews</h3>
+                    <div v-for="review in userReviews" :key="review.id" class="review">
+                        <h3>{{ review.title }}</h3>
+                        <div class="rating-display">
+                            <span class="rating-letter" :class="'rating-' + getRatingLetter(review.rating)">
+                                {{ getRatingLetter(review.rating) }}
+                            </span>
+                            <span class="emoji">{{ getRatingEmoji(review.rating) }}</span>
+                        </div>
+                        
+                        <!-- Rating Type and Product Info -->
+                        <div v-if="review.ratingType" style="margin: 5px 0; font-size: 0.9em; color: #666;">
+                            <span style="background-color: #e9ecef; padding: 2px 6px; border-radius: 3px; margin-right: 10px;">
+                                {{ getRatingTypeLabel(review.ratingType) }}
+                            </span>
+                            <span v-if="review.ratingType === 'product' && review.productBarcode" style="color: #007bff; display: inline-flex; align-items: center;">
+                                📦 <a :href="'https://www.barcodelookup.com/' + review.productBarcode" target="_blank" style="color: #007bff; text-decoration: underline; display: inline;">{{ review.productBarcode }}</a>
+                                <button 
+                                    @click.stop="searchOnAmazon(review.productBarcode)" 
+                                    style="background: none; border: none; padding: 0 4px; margin: 0 0 0 4px; font-size: 1em; vertical-align: middle; color: #ff9900; cursor: pointer; display: inline-flex; align-items: center; line-height: 1;"
+                                    title="Search on Amazon"
+                                >
+                                    <span style="font-size:1em;">🔍</span>
+                                    <span style="font-size:0.95em; margin-left:2px;">Amazon</span>
+                                </button>
+                            </span>
+                        </div>
+                        
+                        <p>{{ review.content }}</p>
+                    </div>
+                </div>
+            `,
+            computed: {
+                userReviews() {
+                    return this.reviews.filter(review => review.userId === this.selectedUser.id);
+                }
+            },
+            methods: {
+                getRatingLetter(rating) {
+                    const letters = ['E', 'D', 'C', 'B', 'A'];
+                    return letters[rating - 1] || '?';
+                },
+                getRatingEmoji(rating) {
+                    const emojis = ['😞', '😕', '😐', '🙂', '😄'];
+                    return emojis[rating - 1] || '❓';
+                },
+                getRatingTypeLabel(ratingType) {
+                    const labels = {
+                        'general': 'General',
+                        'product': 'Product',
+                        'service': 'Service'
+                    };
+                    return labels[ratingType] || 'General';
+                },
+                searchOnAmazon(barcode) {
+                    const amazonSearchUrl = `https://www.amazon.com/s?k=${encodeURIComponent(barcode)}`;
+                    window.open(amazonSearchUrl, '_blank');
+                }
+            }
+        };
+
+        const ReviewList = {
+            props: ['reviews', 'users'],
+            template: `
+                <div>
+                    <h2>All Reviews</h2>
+                    
+                    <div class="review-container">
+                        <div v-for="review in reviews" :key="review.id" class="review" @click="$emit('view-review', review)">
+                            <div class="review-header">
+                                <h3 class="review-title">{{ review.title }}</h3>
+                                <div class="review-meta">
+                                    <div class="rating-display">
+                                        <span class="rating-letter" :class="'rating-' + getRatingLetter(review.rating)">
+                                            {{ getRatingLetter(review.rating) }}
+                                        </span>
+                                        <span class="emoji">{{ getRatingEmoji(review.rating) }}</span>
+                                    </div>
+                                    <span class="review-user">{{ getUserName(review.userId) }}</span>
+                                </div>
+                            </div>
+                            
+                            <!-- Rating Type and Product Info -->
+                            <div v-if="review.ratingType" style="margin: 5px 0; font-size: 0.9em; color: #666;">
+                                <span style="background-color: #e9ecef; padding: 2px 6px; border-radius: 3px; margin-right: 10px;">
+                                    {{ getRatingTypeLabel(review.ratingType) }}
+                                </span>
+                                <span v-if="review.ratingType === 'product' && review.productBarcode" style="color: #007bff; display: inline-flex; align-items: center;">
+                                    📦 <a :href="'https://www.barcodelookup.com/' + review.productBarcode" target="_blank" style="color: #007bff; text-decoration: underline; display: inline;">{{ review.productBarcode }}</a>
+                                    <button 
+                                        @click.stop="searchOnAmazon(review.productBarcode)" 
+                                        style="background: none; border: none; padding: 0 4px; margin: 0 0 0 4px; font-size: 1em; vertical-align: middle; color: #ff9900; cursor: pointer; display: inline-flex; align-items: center; line-height: 1;"
+                                        title="Search on Amazon"
+                                    >
+                                        <span style="font-size:1em;">🔍</span>
+                                        <span style="font-size:0.95em; margin-left:2px;">Amazon</span>
+                                    </button>
+                                </span>
+                            </div>
+                            
+                            <div class="review-content" @click.stop="toggleReview(review.id)" v-if="review.content.length > 100">
+                                <div :class="expandedReviews.includes(review.id) ? 'review-full' : 'review-excerpt'">
+                                    {{ review.content }}
+                                </div>
+                            </div>
+                            <div class="review-content" v-else>
+                                <div class="review-full">
+                                    {{ review.content }}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `,
+            data() {
+                return {
+                    expandedReviews: []
+                };
+            },
+            methods: {
+                getRatingLetter(rating) {
+                    const letters = ['E', 'D', 'C', 'B', 'A'];
+                    return letters[rating - 1] || '?';
+                },
+                getRatingEmoji(rating) {
+                    const emojis = ['😞', '😕', '😐', '🙂', '😄'];
+                    return emojis[rating - 1] || '❓';
+                },
+                getUserName(userId) {
+                    const user = this.users.find(u => u.id === userId);
+                    return user ? user.name : 'Unknown User';
+                },
+                getRatingTypeLabel(ratingType) {
+                    const labels = {
+                        'general': 'General',
+                        'product': 'Product',
+                        'service': 'Service'
+                    };
+                    return labels[ratingType] || 'General';
+                },
+                searchOnAmazon(barcode) {
+                    const amazonSearchUrl = `https://www.amazon.com/s?k=${encodeURIComponent(barcode)}`;
+                    window.open(amazonSearchUrl, '_blank');
+                },
+                toggleReview(reviewId) {
+                    const index = this.expandedReviews.indexOf(reviewId);
+                    if (index > -1) {
+                        this.expandedReviews.splice(index, 1);
+                    } else {
+                        this.expandedReviews.push(reviewId);
                     }
                 },
                 processBarcode(barcode) {
@@ -1910,7 +2162,8 @@
                 UserDetail,
                 ReviewList,
                 ReviewDetail,
-                AdminPanel
+                AdminPanel,
+                AddReview
             },
             data() {
                 return {
