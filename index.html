@@ -181,6 +181,16 @@
             font-weight: 600;
         }
         
+        .nav-subitem {
+            padding-left: 40px;
+            font-size: 14px;
+            opacity: 0.9;
+        }
+        
+        .nav-subitem:hover {
+            opacity: 1;
+        }
+        
         .nav-icon {
             font-size: 20px;
             margin-right: 15px;
@@ -277,6 +287,89 @@
         .breadcrumb-btn span:first-child {
             font-size: 18px;
             font-weight: bold;
+        }
+        
+        /* Add User Form Styles */
+        .add-user-form {
+            max-width: 500px;
+            margin: 0 auto;
+            padding: 20px;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #333;
+            font-size: 14px;
+        }
+        
+        .form-input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e1e5e9;
+            border-radius: 6px;
+            font-size: 16px;
+            transition: border-color 0.2s ease;
+            box-sizing: border-box;
+        }
+        
+        .form-input:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+        
+        .submit-btn {
+            width: 100%;
+            padding: 14px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        
+        .submit-btn:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+        }
+        
+        .submit-btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+        
+        .message {
+            margin-top: 20px;
+            padding: 12px;
+            border-radius: 6px;
+            text-align: center;
+            font-weight: 500;
+        }
+        
+        .message.success {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        
+        .message.error {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
         }
         
 
@@ -527,8 +620,16 @@
                        :class="{ 'active': currentView === 'UserList' }"
                        class="nav-item">
                         <span class="nav-icon">👥</span>
-                        <span v-if="!sidebarCollapsed" class="nav-text">Users</span>
+                        <span v-if="!sidebarCollapsed" class="nav-text">All Users</span>
                     </a>
+                    <a href="#" 
+                       @click.prevent="currentView = 'AddUser'" 
+                       :class="{ 'active': currentView === 'AddUser' }"
+                       class="nav-item nav-subitem">
+                        <span class="nav-icon">➕</span>
+                        <span v-if="!sidebarCollapsed" class="nav-text">Add User</span>
+                    </a>
+                    
                     <a href="#" 
                        @click.prevent="currentView = 'ReviewList'" 
                        :class="{ 'active': currentView === 'ReviewList' }"
@@ -539,10 +640,11 @@
                     <a href="#" 
                        @click.prevent="currentView = 'AddReview'" 
                        :class="{ 'active': currentView === 'AddReview' }"
-                       class="nav-item">
+                       class="nav-item nav-subitem">
                         <span class="nav-icon">➕</span>
                         <span v-if="!sidebarCollapsed" class="nav-text">Add Review</span>
                     </a>
+                    
                     <a href="#" 
                        @click.prevent="currentView = 'AdminPanel'" 
                        :class="{ 'active': currentView === 'AdminPanel' }"
@@ -583,36 +685,16 @@
                 <div>
                     <h2>User Profiles</h2>
                     
-
-                    
                     <div v-for="user in users" :key="user.id" class="user-profile" @click="$emit('view-user', user)">
                         <h3>{{ user.name }}</h3>
                         <p>{{ user.email }}</p>
                     </div>
-                    <div>
-                        <h3>Add New User</h3>
-                        <input v-model="newUser.name" placeholder="Name" />
-                        <input v-model="newUser.email" placeholder="Email" />
-                        <button class="button-actions" @click="submitUser">Add User</button>
-                    </div>
                 </div>
             `,
             data() {
-                return {
-                    newUser: { name: '', email: '' }
-                };
+                return {};
             },
-            methods: {
-                submitUser() {
-                    if (this.newUser.name && this.newUser.email) {
-                        this.$emit('add-user', { ...this.newUser });
-                        this.newUser = { name: '', email: '' };
-                    } else {
-                        alert('Please fill in all fields.');
-                    }
-                },
-
-            }
+            methods: {}
         };
 
         const AddReview = {
@@ -1005,6 +1087,100 @@
             },
             mounted() {
                 this.updateCircleColors(this.newReview.rating);
+            }
+        };
+
+        const AddUser = {
+            props: [],
+            template: `
+                <div>
+                    <h2>Add New User</h2>
+                    
+                    <div class="add-user-form">
+                        <div class="form-group">
+                            <label for="userName">Name:</label>
+                            <input 
+                                id="userName"
+                                v-model="newUser.name" 
+                                placeholder="Enter user's full name" 
+                                class="form-input"
+                            />
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="userEmail">Email:</label>
+                            <input 
+                                id="userEmail"
+                                v-model="newUser.email" 
+                                type="email" 
+                                placeholder="Enter user's email address" 
+                                class="form-input"
+                            />
+                        </div>
+                        
+                        <button 
+                            class="submit-btn" 
+                            @click="submitUser"
+                            :disabled="!isFormValid"
+                        >
+                            Add User
+                        </button>
+                        
+                        <div v-if="submitMessage" class="message" :class="messageType">
+                            {{ submitMessage }}
+                        </div>
+                    </div>
+                </div>
+            `,
+            data() {
+                return {
+                    newUser: { 
+                        name: '', 
+                        email: '' 
+                    },
+                    submitMessage: '',
+                    messageType: 'success'
+                };
+            },
+            computed: {
+                isFormValid() {
+                    return this.newUser.name.trim() && 
+                           this.newUser.email.trim() && 
+                           this.isValidEmail(this.newUser.email);
+                }
+            },
+            methods: {
+                isValidEmail(email) {
+                    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                    return emailRegex.test(email);
+                },
+                submitUser() {
+                    if (!this.isFormValid) {
+                        this.showMessage('Please fill in all fields correctly.', 'error');
+                        return;
+                    }
+                    
+                    // Emit the add-user event
+                    this.$emit('add-user', { 
+                        name: this.newUser.name.trim(), 
+                        email: this.newUser.email.trim() 
+                    });
+                    
+                    // Show success message
+                    this.showMessage('User added successfully!', 'success');
+                    
+                    // Reset form
+                    this.newUser = { name: '', email: '' };
+                },
+                showMessage(message, type) {
+                    this.submitMessage = message;
+                    this.messageType = type;
+                    
+                    // Clear message after 3 seconds
+                    setTimeout(() => {
+                        this.submitMessage = '';
+                    }, 3000);
+                }
             }
         };
 
@@ -2163,7 +2339,8 @@
                 ReviewList,
                 ReviewDetail,
                 AdminPanel,
-                AddReview
+                AddReview,
+                AddUser
             },
             data() {
                 return {
