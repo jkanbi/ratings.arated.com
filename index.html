@@ -1188,7 +1188,6 @@
             props: ['selectedUser', 'reviews'],
             template: `
                 <div>
-                    <button @click="$emit('back-to-list')">Back to Users</button>
                     <div class="user-profile">
                         <h2>{{ selectedUser.name }}</h2>
                         <p>{{ selectedUser.email }}</p>
@@ -1741,7 +1740,6 @@
             props: ['selectedReview', 'users'],
             template: `
                 <div>
-                    <button @click="$emit('back-to-list')">Back to Reviews</button>
                     <div class="review">
                         <h2>{{ selectedReview.title }}</h2>
                         <div class="rating-display">
