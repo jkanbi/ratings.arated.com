@@ -581,6 +581,44 @@
             props: ['reviews', 'users'],
             template: `
                 <div>
+                    <!-- CSV/JSON Import/Export Section -->
+                    <div style="margin-bottom: 20px; padding: 15px; background-color: #f0f0f0; border-radius: 5px;">
+                        <h3>Import/Export Reviews</h3>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px;">
+                            <div>
+                                <h4 style="margin: 5px 0;">Export</h4>
+                                <button @click="exportToCSV" style="background-color: #28a745; width: 100%; margin-bottom: 5px;">Export to CSV</button>
+                                <button @click="exportToJSON" style="background-color: #17a2b8; width: 100%;">Export to JSON</button>
+                            </div>
+                            <div>
+                                <h4 style="margin: 5px 0;">Import</h4>
+                                <button @click="triggerCSVInput" style="background-color: #007bff; width: 100%; margin-bottom: 5px;">Import from CSV</button>
+                                <button @click="triggerJSONInput" style="background-color: #6f42c1; width: 100%;">Import from JSON</button>
+                            </div>
+                        </div>
+                        
+                        <!-- Hidden file inputs -->
+                        <input 
+                            ref="csvFileInput" 
+                            type="file" 
+                            accept=".csv" 
+                            @change="importFromCSV" 
+                            style="display: none;"
+                        />
+                        <input 
+                            ref="jsonFileInput" 
+                            type="file" 
+                            accept=".json" 
+                            @change="importFromJSON" 
+                            style="display: none;"
+                        />
+                        
+                        <div style="font-size: 0.9em; color: #666;">
+                            <p><strong>CSV format:</strong> Title,Rating,Content,RatingType,ProductBarcode,UserName (one review per line)</p>
+                            <p><strong>JSON format:</strong> Array of review objects with all fields</p>
+                        </div>
+                    </div>
+                    
                     <div class="review-container">
                         <div v-for="review in reviews" :key="review.id" class="review" @click="$emit('view-review', review)">
                             <div class="review-header">
@@ -977,6 +1015,276 @@
                     
                     // Load the image
                     img.src = URL.createObjectURL(file);
+                },
+                // Import/Export methods
+                triggerCSVInput() {
+                    this.$refs.csvFileInput.click();
+                },
+                triggerJSONInput() {
+                    this.$refs.jsonFileInput.click();
+                },
+                exportToCSV() {
+                    if (this.reviews.length === 0) {
+                        alert('No reviews to export.');
+                        return;
+                    }
+                    
+                    // Create CSV content with headers
+                    const csvContent = [
+                        'Title,Rating,Content,RatingType,ProductBarcode,UserName,Date',
+                        ...this.reviews.map(review => {
+                            const user = this.users.find(u => u.id === review.userId);
+                            const userName = user ? user.name : 'Unknown User';
+                            const date = new Date(review.id).toISOString().split('T')[0];
+                            const productBarcode = review.productBarcode || '';
+                            const ratingType = review.ratingType || 'general';
+                            
+                            // Escape quotes and commas in content
+                            const escapedContent = review.content.replace(/"/g, '""');
+                            const escapedTitle = review.title.replace(/"/g, '""');
+                            
+                            return `"${escapedTitle}",${review.rating},"${escapedContent}","${ratingType}","${productBarcode}","${userName}","${date}"`;
+                        })
+                    ].join('\n');
+                    
+                    // Create and download file
+                    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+                    const link = document.createElement('a');
+                    const url = URL.createObjectURL(blob);
+                    link.setAttribute('href', url);
+                    link.setAttribute('download', `reviews_${new Date().toISOString().split('T')[0]}.csv`);
+                    link.style.visibility = 'hidden';
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                },
+                exportToJSON() {
+                    if (this.reviews.length === 0) {
+                        alert('No reviews to export.');
+                        return;
+                    }
+                    
+                    // Create enriched review data with user names
+                    const enrichedReviews = this.reviews.map(review => {
+                        const user = this.users.find(u => u.id === review.userId);
+                        return {
+                            ...review,
+                            userName: user ? user.name : 'Unknown User',
+                            date: new Date(review.id).toISOString()
+                        };
+                    });
+                    
+                    // Create and download file
+                    const jsonContent = JSON.stringify(enrichedReviews, null, 2);
+                    const blob = new Blob([jsonContent], { type: 'application/json;charset=utf-8;' });
+                    const link = document.createElement('a');
+                    const url = URL.createObjectURL(blob);
+                    link.setAttribute('href', url);
+                    link.setAttribute('download', `reviews_${new Date().toISOString().split('T')[0]}.json`);
+                    link.style.visibility = 'hidden';
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                },
+                importFromCSV(event) {
+                    const file = event.target.files[0];
+                    if (!file) return;
+                    
+                    const reader = new FileReader();
+                    reader.onload = (e) => {
+                        try {
+                            const csvContent = e.target.result;
+                            const lines = csvContent.split('\n');
+                            
+                            // Remove empty lines and trim whitespace
+                            const nonEmptyLines = lines.filter(line => line.trim());
+                            
+                            if (nonEmptyLines.length === 0) {
+                                alert('No data found in CSV file.');
+                                return;
+                            }
+                            
+                            const importedReviews = [];
+                            let hasErrors = false;
+                            let lineNumber = 0;
+                            
+                            nonEmptyLines.forEach((line, index) => {
+                                lineNumber = index + 1;
+                                
+                                // Skip header line
+                                if (index === 0) return;
+                                
+                                // Simple CSV parsing - split by comma and handle quotes
+                                let parts = [];
+                                let current = '';
+                                let inQuotes = false;
+                                
+                                for (let i = 0; i < line.length; i++) {
+                                    const char = line[i];
+                                    
+                                    if (char === '"') {
+                                        inQuotes = !inQuotes;
+                                    } else if (char === ',' && !inQuotes) {
+                                        parts.push(current.trim());
+                                        current = '';
+                                    } else {
+                                        current += char;
+                                    }
+                                }
+                                parts.push(current.trim()); // Add the last part
+                                
+                                // Remove quotes from parts
+                                parts = parts.map(part => part.replace(/^"|"$/g, ''));
+                                
+                                // Check if we have at least 3 parts (title, rating, content)
+                                if (parts.length >= 3) {
+                                    const title = parts[0].trim();
+                                    const rating = parseInt(parts[1]);
+                                    const content = parts[2].trim();
+                                    const ratingType = parts[3] || 'general';
+                                    const productBarcode = parts[4] || '';
+                                    const userName = parts[5] || '';
+                                    
+                                    // Validate required fields
+                                    if (title && !isNaN(rating) && rating >= 1 && rating <= 5 && content) {
+                                        // Find or create user
+                                        let userId = null;
+                                        if (userName) {
+                                            let user = this.users.find(u => u.name.toLowerCase() === userName.toLowerCase());
+                                            if (!user) {
+                                                // Create new user if doesn't exist
+                                                user = { name: userName, email: `${userName.toLowerCase().replace(/\s+/g, '.')}@imported.com` };
+                                                this.$emit('add-user', user);
+                                                // Get the new user ID from the updated users array
+                                                const newUser = this.users.find(u => u.name.toLowerCase() === userName.toLowerCase());
+                                                userId = newUser ? newUser.id : null;
+                                            } else {
+                                                userId = user.id;
+                                            }
+                                        }
+                                        
+                                        if (userId) {
+                                            importedReviews.push({
+                                                userId,
+                                                title,
+                                                rating,
+                                                content,
+                                                ratingType,
+                                                productBarcode: productBarcode || null
+                                            });
+                                        }
+                                    } else {
+                                        hasErrors = true;
+                                        console.error(`Line ${lineNumber}: Invalid data - "${line}"`);
+                                    }
+                                } else {
+                                    hasErrors = true;
+                                    console.error(`Line ${lineNumber}: Not enough columns - "${line}"`);
+                                }
+                            });
+                            
+                            if (importedReviews.length > 0) {
+                                // Add reviews
+                                importedReviews.forEach(review => {
+                                    this.$emit('add-review', review);
+                                });
+                                
+                                alert(`Successfully imported ${importedReviews.length} reviews.`);
+                            } else {
+                                alert('No valid reviews could be imported from the CSV file.');
+                            }
+                            
+                        } catch (error) {
+                            console.error('Error parsing CSV:', error);
+                            alert('Error parsing CSV file. Please check the format.');
+                        }
+                    };
+                    
+                    reader.readAsText(file);
+                    event.target.value = '';
+                },
+                importFromJSON(event) {
+                    const file = event.target.files[0];
+                    if (!file) return;
+                    
+                    const reader = new FileReader();
+                    reader.onload = (e) => {
+                        try {
+                            const jsonContent = JSON.parse(e.target.result);
+                            
+                            if (!Array.isArray(jsonContent)) {
+                                alert('JSON file should contain an array of reviews.');
+                                return;
+                            }
+                            
+                            const importedReviews = [];
+                            let hasErrors = false;
+                            
+                            jsonContent.forEach((review, index) => {
+                                try {
+                                    // Validate review structure
+                                    if (review.title && review.rating && review.content) {
+                                        const rating = parseInt(review.rating);
+                                        if (rating >= 1 && rating <= 5) {
+                                            // Find or create user
+                                            let userId = null;
+                                            if (review.userName) {
+                                                let user = this.users.find(u => u.name.toLowerCase() === review.userName.toLowerCase());
+                                                if (!user) {
+                                                    // Create new user if doesn't exist
+                                                    user = { name: review.userName, email: `${review.userName.toLowerCase().replace(/\s+/g, '.')}@imported.com` };
+                                                    this.$emit('add-user', user);
+                                                    // Get the new user ID from the updated users array
+                                                    const newUser = this.users.find(u => u.name.toLowerCase() === review.userName.toLowerCase());
+                                                    userId = newUser ? newUser.id : null;
+                                                } else {
+                                                    userId = user.id;
+                                                }
+                                            }
+                                            
+                                            if (userId) {
+                                                importedReviews.push({
+                                                    userId,
+                                                    title: review.title,
+                                                    rating,
+                                                    content: review.content,
+                                                    ratingType: review.ratingType || 'general',
+                                                    productBarcode: review.productBarcode || null
+                                                });
+                                            }
+                                        } else {
+                                            hasErrors = true;
+                                            console.error(`Review ${index + 1}: Invalid rating value`);
+                                        }
+                                    } else {
+                                        hasErrors = true;
+                                        console.error(`Review ${index + 1}: Missing required fields`);
+                                    }
+                                } catch (error) {
+                                    hasErrors = true;
+                                    console.error(`Review ${index + 1}: Error processing`, error);
+                                }
+                            });
+                            
+                            if (importedReviews.length > 0) {
+                                // Add reviews
+                                importedReviews.forEach(review => {
+                                    this.$emit('add-review', review);
+                                });
+                                
+                                alert(`Successfully imported ${importedReviews.length} reviews.`);
+                            } else {
+                                alert('No valid reviews could be imported from the JSON file.');
+                            }
+                            
+                        } catch (error) {
+                            console.error('Error parsing JSON:', error);
+                            alert('Error parsing JSON file. Please check the format.');
+                        }
+                    };
+                    
+                    reader.readAsText(file);
+                    event.target.value = '';
                 }
             }
         };
@@ -1042,6 +1350,10 @@
                         'service': 'Service'
                     };
                     return labels[ratingType] || 'General';
+                },
+                searchOnAmazon(barcode) {
+                    const amazonSearchUrl = `https://www.amazon.com/s?k=${encodeURIComponent(barcode)}`;
+                    window.open(amazonSearchUrl, '_blank');
                 }
             }
         };
