@@ -1977,14 +1977,16 @@
                             <div>
                                 <h4 style="margin: 5px 0; color: #495057;">Export</h4>
                                 <button @click="exportUsersToCSV" style="background-color: #28a745; width: 100%; margin-bottom: 8px;">Export Users to CSV</button>
+                                <button @click="exportUsersToJSON" style="background-color: #17a2b8; width: 100%;">Export Users to JSON</button>
                             </div>
                             <div>
                                 <h4 style="margin: 5px 0; color: #495057;">Import</h4>
-                                <button @click="triggerUserCSVInput" style="background-color: #007bff; width: 100%;">Import Users from CSV</button>
+                                <button @click="triggerUserCSVInput" style="background-color: #007bff; width: 100%; margin-bottom: 8px;">Import Users from CSV</button>
+                                <button @click="triggerUserJSONInput" style="background-color: #6f42c1; width: 100%;">Import Users from JSON</button>
                             </div>
                         </div>
                         
-                        <!-- Hidden file input for users -->
+                        <!-- Hidden file inputs for users -->
                         <input 
                             ref="userCSVFileInput" 
                             type="file" 
@@ -1992,9 +1994,17 @@
                             @change="importUsersFromCSV" 
                             style="display: none;"
                         />
+                        <input 
+                            ref="userJSONFileInput" 
+                            type="file" 
+                            accept=".json" 
+                            @change="importUsersFromJSON" 
+                            style="display: none;"
+                        />
                         
                         <div style="font-size: 0.9em; color: #6c757d;">
                             <p><strong>CSV format:</strong> Name,Email (one user per line)</p>
+                            <p><strong>JSON format:</strong> Array of user objects with name and email fields</p>
                             <p><strong>Current users:</strong> {{ users.length }}</p>
                         </div>
                     </div>
@@ -2183,6 +2193,114 @@
                         } catch (error) {
                             console.error('Error parsing CSV:', error);
                             alert('Error parsing CSV file. Please check the format.');
+                        }
+                    };
+                    
+                    reader.readAsText(file);
+                    event.target.value = '';
+                },
+                
+                // User JSON methods
+                triggerUserJSONInput() {
+                    this.$refs.userJSONFileInput.click();
+                },
+                exportUsersToJSON() {
+                    if (this.users.length === 0) {
+                        alert('No users to export.');
+                        return;
+                    }
+                    
+                    const enrichedUsers = this.users.map(user => ({
+                        ...user,
+                        date: new Date(user.id).toISOString()
+                    }));
+                    
+                    const jsonContent = JSON.stringify(enrichedUsers, null, 2);
+                    const blob = new Blob([jsonContent], { type: 'application/json;charset=utf-8;' });
+                    const link = document.createElement('a');
+                    const url = URL.createObjectURL(blob);
+                    link.setAttribute('href', url);
+                    link.setAttribute('download', `users_${new Date().toISOString().split('T')[0]}.json`);
+                    link.style.visibility = 'hidden';
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                },
+                importUsersFromJSON(event) {
+                    const file = event.target.files[0];
+                    if (!file) return;
+                    
+                    const reader = new FileReader();
+                    reader.onload = (e) => {
+                        try {
+                            const jsonContent = JSON.parse(e.target.result);
+                            
+                            if (!Array.isArray(jsonContent)) {
+                                alert('Invalid JSON format. Expected an array of user objects.');
+                                return;
+                            }
+                            
+                            if (jsonContent.length === 0) {
+                                alert('No users found in JSON file.');
+                                return;
+                            }
+                            
+                            const importedUsers = [];
+                            const duplicates = [];
+                            let hasErrors = false;
+                            
+                            // Get existing emails for duplicate checking
+                            const existingEmails = this.users.map(user => user.email.toLowerCase());
+                            
+                            jsonContent.forEach((userObj, index) => {
+                                if (userObj && typeof userObj === 'object') {
+                                    const name = userObj.name ? userObj.name.trim() : '';
+                                    const email = userObj.email ? userObj.email.trim() : '';
+                                    
+                                    if (name && email && name.length > 0 && email.length > 0) {
+                                        if (name.replace(/\s/g, '').length > 0 && email.replace(/\s/g, '').length > 0) {
+                                            // Check for duplicates by email
+                                            if (existingEmails.includes(email.toLowerCase())) {
+                                                duplicates.push({ name, email });
+                                            } else {
+                                                importedUsers.push({ name, email });
+                                                // Add to existing emails list to prevent duplicates within the same import
+                                                existingEmails.push(email.toLowerCase());
+                                            }
+                                        } else {
+                                            hasErrors = true;
+                                        }
+                                    } else {
+                                        hasErrors = true;
+                                    }
+                                } else {
+                                    hasErrors = true;
+                                }
+                            });
+                            
+                            if (importedUsers.length > 0) {
+                                importedUsers.forEach(user => {
+                                    this.$emit('add-user', user);
+                                });
+                                
+                                let message = `Successfully imported ${importedUsers.length} new users.`;
+                                if (duplicates.length > 0) {
+                                    message += ` ${duplicates.length} duplicate(s) skipped.`;
+                                }
+                                if (hasErrors) {
+                                    message += ' Some entries had errors and were skipped.';
+                                }
+                                
+                                alert(message);
+                            } else if (duplicates.length > 0) {
+                                alert(`No new users imported. All ${duplicates.length} users in the JSON were duplicates.`);
+                            } else {
+                                alert('No valid users could be imported from the JSON file.');
+                            }
+                            
+                        } catch (error) {
+                            console.error('Error parsing JSON:', error);
+                            alert('Error parsing JSON file. Please check the format.');
                         }
                     };
                     
