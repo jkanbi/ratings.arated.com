@@ -1,0 +1,5 @@
+Title,Rating,Content,RatingType,ProductBarcode,UserName,Date
+"Test Review","4","Test content","general","","Unknown User","2025-08-24"
+"Amazing Product!","5","This product exceeded all my expectations. Highly recommended!","product","1234567890123","Unknown User","2025-08-24"
+"Great Service!","4","The service was excellent and very professional.","service","","Unknown User","2025-08-24"
+"Another Great Review","5","This is another excellent review!","general","","Unknown User","2025-08-24"

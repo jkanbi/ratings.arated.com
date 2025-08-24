@@ -1,2 +1,3 @@
 Title,Rating,Content,RatingType,ProductBarcode,UserName,Date
-"asfd",5,"","general","","Test","2025-08-24"
+"asfd","5","","general","","Unknown User","2025-08-24"
+"Test Review from Script","4","This is a test review created by the test script","general","","Unknown User","2025-08-24"
