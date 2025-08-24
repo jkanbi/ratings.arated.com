@@ -105,6 +105,149 @@
         .rating-E { background-color: #FBB03B; }
         .emoji {
             margin-left: 8px;
+        }
+        
+        /* Sidebar Styles */
+        .sidebar {
+            position: fixed;
+            left: 0;
+            top: 0;
+            height: 100vh;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            width: 250px;
+            transition: all 0.3s ease;
+            z-index: 1000;
+            box-shadow: 2px 0 10px rgba(0,0,0,0.1);
+        }
+        
+        .sidebar.collapsed {
+            width: 60px;
+        }
+        
+        .sidebar-header {
+            padding: 20px;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .sidebar-header h3 {
+            margin: 0;
+            font-size: 18px;
+            font-weight: 600;
+        }
+        
+        .collapse-btn {
+            background: rgba(255,255,255,0.2);
+            border: none;
+            color: white;
+            padding: 8px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.2s ease;
+        }
+        
+        .collapse-btn:hover {
+            background: rgba(255,255,255,0.3);
+            transform: scale(1.05);
+        }
+        
+        .sidebar-nav {
+            padding: 20px 0;
+        }
+        
+        .nav-item {
+            display: flex;
+            align-items: center;
+            padding: 15px 20px;
+            color: white;
+            text-decoration: none;
+            transition: all 0.2s ease;
+            border-left: 3px solid transparent;
+        }
+        
+        .nav-item:hover {
+            background: rgba(255,255,255,0.1);
+            border-left-color: rgba(255,255,255,0.5);
+            transform: translateX(5px);
+        }
+        
+        .nav-item.active {
+            background: rgba(255,255,255,0.15);
+            border-left-color: white;
+            font-weight: 600;
+        }
+        
+        .nav-icon {
+            font-size: 20px;
+            margin-right: 15px;
+            min-width: 20px;
+            text-align: center;
+        }
+        
+        .nav-text {
+            font-size: 16px;
+            font-weight: 500;
+        }
+        
+        .sidebar.collapsed .nav-text {
+            display: none;
+        }
+        
+        .sidebar.collapsed .nav-icon {
+            margin-right: 0;
+            font-size: 24px;
+        }
+        
+        /* Responsive adjustments */
+        @media (max-width: 768px) {
+            .sidebar {
+                width: 60px;
+            }
+            .sidebar .nav-text {
+                display: none;
+            }
+            .sidebar .sidebar-header h3 {
+                display: none;
+            }
+            .container {
+                margin-left: 60px;
+            }
+            header {
+                margin-left: 60px;
+            }
+        }
+        
+        /* Adjust main container for sidebar */
+        .container {
+            margin-left: 250px;
+            transition: margin-left 0.3s ease;
+            max-width: none;
+            padding: 20px;
+            position: relative;
+            z-index: 1;
+        }
+        
+
+        
+        /* Ensure content is visible above sidebar */
+        header {
+            margin-left: 250px;
+            transition: margin-left 0.3s ease;
+            position: relative;
+            z-index: 1;
+        }
+        
+        .sidebar.collapsed ~ header {
+            margin-left: 60px;
+        }
+        
+
+        
+        .emoji {
             font-size: 1.2em;
         }
         input, textarea, button {
@@ -123,34 +266,7 @@
         button:hover {
             background-color: #005ea2;
         }
-        .nav-buttons {
-            margin-bottom: 20px;
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-            gap: 15px;
-            max-width: 400px;
-        }
-        .nav-buttons button {
-            padding: 20px;
-            font-size: 16px;
-            font-weight: bold;
-            border-radius: 8px;
-            border: 2px solid #0072c6;
-            background-color: white;
-            color: #0072c6;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            aspect-ratio: 1;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-        .nav-buttons button:hover {
-            background-color: #0072c6;
-            color: white;
-            transform: translateY(-2px);
-            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
-        }
+
         
         .button-actions{
         	background-color: red;
@@ -363,11 +479,47 @@
             <h1>Ratings and Reviews</h1>
         </header>
         <div class="container">
-            <div class="nav-buttons">
-                <button @click="currentView = 'UserList'">Users</button>
-                <button @click="currentView = 'ReviewList'">All Reviews</button>
-                <button @click="currentView = 'AdminPanel'" style="background-color: #6f42c1; color: white;">Admin</button>
+            <div class="sidebar" :class="{ 'collapsed': sidebarCollapsed }">
+                <div class="sidebar-header">
+                    <h3 v-if="!sidebarCollapsed">Navigation</h3>
+                    <button class="collapse-btn" @click="toggleSidebar">
+                        <span v-if="!sidebarCollapsed">◀</span>
+                        <span v-else>▶</span>
+                    </button>
+                </div>
+                <nav class="sidebar-nav">
+                    <a href="#" 
+                       @click.prevent="currentView = 'UserList'" 
+                       :class="{ 'active': currentView === 'UserList' }"
+                       class="nav-item">
+                        <span class="nav-icon">👥</span>
+                        <span v-if="!sidebarCollapsed" class="nav-text">Users</span>
+                    </a>
+                    <a href="#" 
+                       @click.prevent="currentView = 'ReviewList'" 
+                       :class="{ 'active': currentView === 'ReviewList' }"
+                       class="nav-item">
+                        <span class="nav-icon">⭐</span>
+                        <span v-if="!sidebarCollapsed" class="nav-text">Reviews</span>
+                    </a>
+                    <a href="#" 
+                       @click.prevent="currentView = 'AdminPanel'" 
+                       :class="{ 'active': currentView === 'AdminPanel' }"
+                       class="nav-item">
+                        <span class="nav-icon">⚙️</span>
+                        <span v-if="!sidebarCollapsed" class="nav-text">Admin</span>
+                    </a>
+                </nav>
             </div>
+            <!-- Breadcrumb Navigation -->
+            <div class="breadcrumb-nav" v-if="currentView === 'UserDetail' || currentView === 'ReviewDetail'">
+                <button class="breadcrumb-btn" @click="backToList">
+                    <span>←</span>
+                    <span v-if="currentView === 'UserDetail'">Back to Users</span>
+                    <span v-else>Back to Reviews</span>
+                </button>
+            </div>
+            
             <component :is="currentView" 
                        :users="users"
                        :reviews="reviews"
@@ -1766,7 +1918,8 @@
                     reviews: this.loadReviews(),
                     currentView: 'UserList',
                     selectedUser: null,
-                    selectedReview: null
+                    selectedReview: null,
+                    sidebarCollapsed: false
                 };
             },
             methods: {
@@ -1815,9 +1968,19 @@
                     this.currentView = 'ReviewDetail';
                 },
                 backToList() {
-                    this.currentView = this.currentView === 'UserDetail' ? 'UserList' : 'ReviewList';
+                    // Determine which list to go back to based on current view
+                    if (this.currentView === 'UserDetail') {
+                        this.currentView = 'UserList';
+                    } else if (this.currentView === 'ReviewDetail') {
+                        this.currentView = 'ReviewList';
+                    }
+                    
+                    // Clear selected items
                     this.selectedUser = null;
                     this.selectedReview = null;
+                },
+                toggleSidebar() {
+                    this.sidebarCollapsed = !this.sidebarCollapsed;
                 }
             }
         });
