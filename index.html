@@ -407,6 +407,21 @@
             box-shadow: 0 2px 8px rgba(0,0,0,0.1);
         }
         
+        /* Logo Styling */
+        body > img {
+            position: fixed;
+            top: 20px;
+            left: 270px;
+            z-index: 999;
+            max-height: 60px;
+            width: auto;
+            transition: left 0.3s ease;
+        }
+        
+        .sidebar.collapsed ~ body > img {
+            left: 80px;
+        }
+        
 
         
         .emoji {
