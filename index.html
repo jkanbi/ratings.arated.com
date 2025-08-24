@@ -898,7 +898,7 @@
                             </div>
                         </div>
                         
-                        <textarea v-model="newReview.content" placeholder="Write your review here..."></textarea>
+                        <textarea v-model="newReview.content" placeholder="Write your review here... (optional)"></textarea>
                         <button class="button-actions" @click="submitReview">Submit Review</button>
                     </div>
                     
@@ -954,7 +954,7 @@
                     window.open(amazonSearchUrl, '_blank');
                 },
                 submitReview() {
-                    if (this.newReview.userId && this.newReview.title && this.newReview.rating && this.newReview.content) {
+                    if (this.newReview.userId && this.newReview.title && this.newReview.rating) {
                         // Validate product barcode if rating type is product
                         if (this.newReview.ratingType === 'product' && !this.newReview.productBarcode) {
                             alert('Please enter or scan a product barcode for product reviews.');
@@ -975,7 +975,7 @@
                             productBarcode: ''
                         };
                     } else {
-                        alert('Please fill in all fields.');
+                        alert('Please fill in all required fields (User, Title, and Rating).');
                     }
                 },
                 selectRating(rating) {
