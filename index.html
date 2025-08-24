@@ -2569,7 +2569,94 @@
                 },
                 toggleMenu() {
                     this.menuOpen = !this.menuOpen;
+                },
+                
+                // Auto-load CSV files if no data exists
+                async autoLoadCSVFiles() {
+                    // Check if we have any existing data
+                    if (this.users.length === 0 && this.reviews.length === 0) {
+                        try {
+                            // Try to load users.csv
+                            const usersResponse = await fetch('users.csv');
+                            if (usersResponse.ok) {
+                                const usersCSV = await usersResponse.text();
+                                this.parseAndImportUsersCSV(usersCSV);
+                            }
+                            
+                            // Try to load reviews.csv
+                            const reviewsResponse = await fetch('reviews.csv');
+                            if (reviewsResponse.ok) {
+                                const reviewsCSV = await reviewsResponse.text();
+                                this.parseAndImportReviewsCSV(reviewsCSV);
+                            }
+                        } catch (error) {
+                            console.log('CSV files not found or error loading:', error);
+                        }
+                    }
+                },
+                
+                // Parse and import users from CSV string
+                parseAndImportUsersCSV(csvContent) {
+                    const lines = csvContent.split('\n').filter(line => line.trim());
+                    const headers = lines[0].split(',').map(h => h.trim());
+                    
+                    for (let i = 1; i < lines.length; i++) {
+                        const values = lines[i].split(',').map(v => v.trim());
+                        if (values.length >= 2) {
+                            const user = {
+                                name: values[0],
+                                email: values[1]
+                            };
+                            this.addUser(user);
+                        }
+                    }
+                },
+                
+                // Parse and import reviews from CSV string
+                parseAndImportReviewsCSV(csvContent) {
+                    const lines = csvContent.split('\n').filter(line => line.trim());
+                    const headers = lines[0].split(',').map(h => h.trim());
+                    
+                    for (let i = 1; i < lines.length; i++) {
+                        const values = lines[i].split(',').map(v => v.trim());
+                        if (values.length >= 4) {
+                            const userName = values[0];
+                            const title = values[1];
+                            const rating = parseInt(values[2]);
+                            const content = values[3] || '';
+                            
+                            if (userName && title && rating >= 1 && rating <= 5) {
+                                // Find or create user
+                                let user = this.users.find(u => u.name.toLowerCase() === userName.toLowerCase());
+                                if (!user) {
+                                    user = { 
+                                        name: userName, 
+                                        email: `${userName.toLowerCase().replace(/\s+/g, '.')}@imported.com` 
+                                    };
+                                    this.addUser(user);
+                                    // Get the newly created user's ID
+                                    user = this.users.find(u => u.name.toLowerCase() === userName.toLowerCase());
+                                }
+                                
+                                if (user) {
+                                    const review = {
+                                        userId: user.id,
+                                        title: title,
+                                        rating: rating,
+                                        content: content,
+                                        ratingType: 'general',
+                                        productBarcode: null
+                                    };
+                                    this.addReview(review);
+                                }
+                            }
+                        }
+                    }
                 }
+            },
+            mounted() {
+                // Auto-load CSV files if no data exists
+                this.autoLoadCSVFiles();
             }
         });
 
