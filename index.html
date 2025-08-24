@@ -1370,7 +1370,11 @@
                             }
                             
                             const importedUsers = [];
+                            const duplicates = [];
                             let hasErrors = false;
+                            
+                            // Get existing emails for duplicate checking
+                            const existingEmails = this.users.map(user => user.email.toLowerCase());
                             
                             nonEmptyLines.forEach((line, index) => {
                                 if (index === 0) return; // Skip header
@@ -1399,7 +1403,14 @@
                                     
                                     if (name && email && name.length > 0 && email.length > 0) {
                                         if (name.replace(/\s/g, '').length > 0 && email.replace(/\s/g, '').length > 0) {
-                                            importedUsers.push({ name, email });
+                                            // Check for duplicates by email
+                                            if (existingEmails.includes(email.toLowerCase())) {
+                                                duplicates.push({ name, email });
+                                            } else {
+                                                importedUsers.push({ name, email });
+                                                // Add to existing emails list to prevent duplicates within the same import
+                                                existingEmails.push(email.toLowerCase());
+                                            }
                                         } else {
                                             hasErrors = true;
                                         }
@@ -1415,7 +1426,18 @@
                                 importedUsers.forEach(user => {
                                     this.$emit('add-user', user);
                                 });
-                                alert(`Successfully imported ${importedUsers.length} users.`);
+                                
+                                let message = `Successfully imported ${importedUsers.length} new users.`;
+                                if (duplicates.length > 0) {
+                                    message += ` ${duplicates.length} duplicate(s) skipped.`;
+                                }
+                                if (hasErrors) {
+                                    message += ' Some lines had errors and were skipped.';
+                                }
+                                
+                                alert(message);
+                            } else if (duplicates.length > 0) {
+                                alert(`No new users imported. All ${duplicates.length} users in the CSV were duplicates.`);
                             } else {
                                 alert('No valid users could be imported from the CSV file.');
                             }
@@ -1512,7 +1534,17 @@
                             }
                             
                             const importedReviews = [];
+                            const duplicates = [];
                             let hasErrors = false;
+                            
+                            // Create a set of existing review signatures for duplicate checking
+                            const existingReviewSignatures = new Set();
+                            this.reviews.forEach(review => {
+                                const user = this.users.find(u => u.id === review.userId);
+                                const userName = user ? user.name.toLowerCase() : 'unknown';
+                                const signature = `${userName}|${review.title.toLowerCase()}|${review.content.toLowerCase().substring(0, 50)}`;
+                                existingReviewSignatures.add(signature);
+                            });
                             
                             nonEmptyLines.forEach((line, index) => {
                                 if (index === 0) return;
@@ -1558,14 +1590,23 @@
                                         }
                                         
                                         if (userId) {
-                                            importedReviews.push({
-                                                userId,
-                                                title,
-                                                rating,
-                                                content,
-                                                ratingType,
-                                                productBarcode: productBarcode || null
-                                            });
+                                            // Check for duplicates by creating a signature
+                                            const reviewSignature = `${userName.toLowerCase()}|${title.toLowerCase()}|${content.toLowerCase().substring(0, 50)}`;
+                                            
+                                            if (existingReviewSignatures.has(reviewSignature)) {
+                                                duplicates.push({ title, userName, content: content.substring(0, 50) + '...' });
+                                            } else {
+                                                importedReviews.push({
+                                                    userId,
+                                                    title,
+                                                    rating,
+                                                    content,
+                                                    ratingType,
+                                                    productBarcode: productBarcode || null
+                                                });
+                                                // Add to existing signatures to prevent duplicates within the same import
+                                                existingReviewSignatures.add(reviewSignature);
+                                            }
                                         }
                                     } else {
                                         hasErrors = true;
@@ -1579,7 +1620,18 @@
                                 importedReviews.forEach(review => {
                                     this.$emit('add-review', review);
                                 });
-                                alert(`Successfully imported ${importedReviews.length} reviews.`);
+                                
+                                let message = `Successfully imported ${importedReviews.length} new reviews.`;
+                                if (duplicates.length > 0) {
+                                    message += ` ${duplicates.length} duplicate(s) skipped.`;
+                                }
+                                if (hasErrors) {
+                                    message += ' Some lines had errors and were skipped.';
+                                }
+                                
+                                alert(message);
+                            } else if (duplicates.length > 0) {
+                                alert(`No new reviews imported. All ${duplicates.length} reviews in the CSV were duplicates.`);
                             } else {
                                 alert('No valid reviews could be imported from the CSV file.');
                             }
@@ -1608,7 +1660,17 @@
                             }
                             
                             const importedReviews = [];
+                            const duplicates = [];
                             let hasErrors = false;
+                            
+                            // Create a set of existing review signatures for duplicate checking
+                            const existingReviewSignatures = new Set();
+                            this.reviews.forEach(review => {
+                                const user = this.users.find(u => u.id === review.userId);
+                                const userName = user ? user.name.toLowerCase() : 'unknown';
+                                const signature = `${userName}|${review.title.toLowerCase()}|${review.content.toLowerCase().substring(0, 50)}`;
+                                existingReviewSignatures.add(signature);
+                            });
                             
                             jsonContent.forEach((review, index) => {
                                 try {
@@ -1629,14 +1691,23 @@
                                             }
                                             
                                             if (userId) {
-                                                importedReviews.push({
-                                                    userId,
-                                                    title: review.title,
-                                                    rating,
-                                                    content: review.content,
-                                                    ratingType: review.ratingType || 'general',
-                                                    productBarcode: review.productBarcode || null
-                                                });
+                                                // Check for duplicates by creating a signature
+                                                const reviewSignature = `${review.userName.toLowerCase()}|${review.title.toLowerCase()}|${review.content.toLowerCase().substring(0, 50)}`;
+                                                
+                                                if (existingReviewSignatures.has(reviewSignature)) {
+                                                    duplicates.push({ title: review.title, userName: review.userName, content: review.content.substring(0, 50) + '...' });
+                                                } else {
+                                                    importedReviews.push({
+                                                        userId,
+                                                        title: review.title,
+                                                        rating,
+                                                        content: review.content,
+                                                        ratingType: review.ratingType || 'general',
+                                                        productBarcode: review.productBarcode || null
+                                                    });
+                                                    // Add to existing signatures to prevent duplicates within the same import
+                                                    existingReviewSignatures.add(reviewSignature);
+                                                }
                                             }
                                         } else {
                                             hasErrors = true;
@@ -1653,7 +1724,18 @@
                                 importedReviews.forEach(review => {
                                     this.$emit('add-review', review);
                                 });
-                                alert(`Successfully imported ${importedReviews.length} reviews.`);
+                                
+                                let message = `Successfully imported ${importedReviews.length} new reviews.`;
+                                if (duplicates.length > 0) {
+                                    message += ` ${duplicates.length} duplicate(s) skipped.`;
+                                }
+                                if (hasErrors) {
+                                    message += ' Some lines had errors and were skipped.';
+                                }
+                                
+                                alert(message);
+                            } else if (duplicates.length > 0) {
+                                alert(`No new reviews imported. All ${duplicates.length} reviews in the JSON were duplicates.`);
                             } else {
                                 alert('No valid reviews could be imported from the JSON file.');
                             }
