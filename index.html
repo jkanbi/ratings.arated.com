@@ -107,56 +107,90 @@
             margin-left: 8px;
         }
         
-        /* Sidebar Styles */
-        .sidebar {
+        /* Hamburger Menu Styles */
+        .menu-toggle {
             position: fixed;
-            left: 0;
+            top: 20px;
+            left: 20px;
+            z-index: 1001;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: none;
+            border-radius: 8px;
+            width: 50px;
+            height: 50px;
+            cursor: pointer;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            transition: all 0.3s ease;
+        }
+        
+        .menu-toggle:hover {
+            transform: scale(1.05);
+            box-shadow: 0 6px 16px rgba(0,0,0,0.2);
+        }
+        
+        .hamburger-line {
+            width: 20px;
+            height: 2px;
+            background: white;
+            margin: 2px 0;
+            transition: all 0.3s ease;
+            transform-origin: center;
+        }
+        
+        .close-line {
+            position: absolute;
+            width: 20px;
+            height: 2px;
+            background: white;
+            transition: all 0.3s ease;
+        }
+        
+        .close-line-1 {
+            transform: rotate(45deg);
+            opacity: 0;
+        }
+        
+        .close-line-2 {
+            transform: rotate(-45deg);
+            opacity: 0;
+        }
+        
+        .menu-toggle.active .hamburger-line {
+            opacity: 0;
+        }
+        
+        .menu-toggle.active .close-line-1 {
+            opacity: 1;
+        }
+        
+        .menu-toggle.active .close-line-2 {
+            opacity: 1;
+        }
+        
+        /* Navigation Menu */
+        .nav-menu {
+            position: fixed;
             top: 0;
+            left: -300px;
             height: 100vh;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
-            width: 250px;
+            width: 300px;
             transition: all 0.3s ease;
             z-index: 1000;
             box-shadow: 2px 0 10px rgba(0,0,0,0.1);
         }
         
-        .sidebar.collapsed {
-            width: 60px;
+        .nav-menu.open {
+            left: 0;
         }
         
-        .sidebar-header {
-            padding: 20px;
-            border-bottom: 1px solid rgba(255,255,255,0.1);
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        
-        .sidebar-header h3 {
-            margin: 0;
-            font-size: 18px;
-            font-weight: 600;
-        }
-        
-        .collapse-btn {
-            background: rgba(255,255,255,0.2);
-            border: none;
-            color: white;
-            padding: 8px 12px;
-            border-radius: 6px;
-            cursor: pointer;
-            font-size: 14px;
-            transition: all 0.2s ease;
-        }
-        
-        .collapse-btn:hover {
-            background: rgba(255,255,255,0.3);
-            transform: scale(1.05);
-        }
-        
-        .sidebar-nav {
-            padding: 20px 0;
+        .nav-menu-content {
+            padding: 80px 0 20px 0;
         }
         
         .nav-item {
@@ -203,56 +237,54 @@
             font-weight: 500;
         }
         
-        .sidebar.collapsed .nav-text {
-            display: none;
-        }
-        
-        .sidebar.collapsed .nav-icon {
-            margin-right: 0;
-            font-size: 24px;
-        }
-        
-        /* Responsive adjustments */
-        @media (max-width: 768px) {
-            .sidebar {
-                width: 60px;
-            }
-            .sidebar .nav-text {
-                display: none;
-            }
-            .sidebar .sidebar-header h3 {
-                display: none;
-            }
-            .container {
-                margin-left: 60px;
-            }
-            header {
-                margin-left: 60px;
-            }
-        }
-        
-        /* Adjust main container for sidebar */
+        /* Adjust main container for menu */
         .container {
-            margin-left: 250px;
-            transition: margin-left 0.3s ease;
+            margin-left: 0;
             max-width: none;
             padding: 20px;
             position: relative;
             z-index: 1;
         }
         
-
-        
-        /* Ensure content is visible above sidebar */
+        /* Ensure content is visible */
         header {
-            margin-left: 250px;
-            transition: margin-left 0.3s ease;
+            margin-left: 0;
             position: relative;
             z-index: 1;
         }
         
-        .sidebar.collapsed ~ header {
-            margin-left: 60px;
+        /* Mobile Responsive Styles */
+        @media (max-width: 768px) {
+            .menu-toggle {
+                top: 15px;
+                left: 15px;
+                width: 45px;
+                height: 45px;
+            }
+            
+            .hamburger-line {
+                width: 18px;
+                height: 2px;
+            }
+            
+            .close-line {
+                width: 18px;
+                height: 2px;
+            }
+            
+            .nav-menu {
+                width: 280px;
+                left: -280px;
+            }
+            
+            .nav-menu.open {
+                left: 0;
+            }
+            
+            body > img {
+                left: 70px;
+                max-height: 50px;
+            }
         }
         
         /* Breadcrumb Navigation */
@@ -411,15 +443,10 @@
         body > img {
             position: fixed;
             top: 20px;
-            left: 270px;
+            left: 90px;
             z-index: 999;
             max-height: 60px;
             width: auto;
-            transition: left 0.3s ease;
-        }
-        
-        .sidebar.collapsed ~ body > img {
-            left: 80px;
         }
         
 
@@ -656,51 +683,54 @@
             <h1>Ratings and Reviews</h1>
         </header>
         <div class="container">
-            <div class="sidebar" :class="{ 'collapsed': sidebarCollapsed }">
-                <div class="sidebar-header">
-                    <h3 v-if="!sidebarCollapsed">Navigation</h3>
-                    <button class="collapse-btn" @click="toggleSidebar">
-                        <span v-if="!sidebarCollapsed">◀</span>
-                        <span v-else>▶</span>
-                    </button>
-                </div>
-                <nav class="sidebar-nav">
+            <!-- Hamburger Menu Button -->
+            <button class="menu-toggle" @click="toggleMenu" :class="{ 'active': menuOpen }">
+                <span class="hamburger-line"></span>
+                <span class="hamburger-line"></span>
+                <span class="hamburger-line"></span>
+                <span class="close-line close-line-1"></span>
+                <span class="close-line close-line-2"></span>
+            </button>
+            
+            <!-- Navigation Menu -->
+            <div class="nav-menu" :class="{ 'open': menuOpen }">
+                <nav class="nav-menu-content">
                     <a href="#" 
-                       @click.prevent="currentView = 'UserList'" 
+                       @click.prevent="currentView = 'UserList'; menuOpen = false" 
                        :class="{ 'active': currentView === 'UserList' }"
                        class="nav-item">
                         <span class="nav-icon">👥</span>
-                        <span v-if="!sidebarCollapsed" class="nav-text">All Users</span>
+                        <span class="nav-text">All Users</span>
                     </a>
                     <a href="#" 
-                       @click.prevent="currentView = 'AddUser'" 
+                       @click.prevent="currentView = 'AddUser'; menuOpen = false" 
                        :class="{ 'active': currentView === 'AddUser' }"
                        class="nav-item nav-subitem">
                         <span class="nav-icon">➕</span>
-                        <span v-if="!sidebarCollapsed" class="nav-text">Add User</span>
+                        <span class="nav-text">Add User</span>
                     </a>
                     
                     <a href="#" 
-                       @click.prevent="currentView = 'ReviewList'" 
+                       @click.prevent="currentView = 'ReviewList'; menuOpen = false" 
                        :class="{ 'active': currentView === 'ReviewList' }"
                        class="nav-item">
                         <span class="nav-icon">⭐</span>
-                        <span v-if="!sidebarCollapsed" class="nav-text">Reviews</span>
+                        <span class="nav-text">Reviews</span>
                     </a>
                     <a href="#" 
-                       @click.prevent="currentView = 'AddReview'" 
+                       @click.prevent="currentView = 'AddReview'; menuOpen = false" 
                        :class="{ 'active': currentView === 'AddReview' }"
                        class="nav-item nav-subitem">
                         <span class="nav-icon">➕</span>
-                        <span v-if="!sidebarCollapsed" class="nav-text">Add Review</span>
+                        <span class="nav-text">Add Review</span>
                     </a>
                     
                     <a href="#" 
-                       @click.prevent="currentView = 'AdminPanel'" 
+                       @click.prevent="currentView = 'AdminPanel'; menuOpen = false" 
                        :class="{ 'active': currentView === 'AdminPanel' }"
                        class="nav-item">
                         <span class="nav-icon">⚙️</span>
-                        <span v-if="!sidebarCollapsed" class="nav-text">Admin</span>
+                        <span class="nav-text">Admin</span>
                     </a>
                 </nav>
             </div>
@@ -2397,16 +2427,16 @@
                 AddReview,
                 AddUser
             },
-            data() {
-                return {
-                    users: this.loadUsers(),
-                    reviews: this.loadReviews(),
-                    currentView: 'UserList',
-                    selectedUser: null,
-                    selectedReview: null,
-                    sidebarCollapsed: false
-                };
-            },
+                            data() {
+                    return {
+                        users: this.loadUsers(),
+                        reviews: this.loadReviews(),
+                        currentView: 'UserList',
+                        selectedUser: null,
+                        selectedReview: null,
+                        menuOpen: false
+                    };
+                },
             methods: {
                 loadUsers() {
                     const storedUsers = localStorage.getItem('users');
@@ -2464,8 +2494,8 @@
                     this.selectedUser = null;
                     this.selectedReview = null;
                 },
-                toggleSidebar() {
-                    this.sidebarCollapsed = !this.sidebarCollapsed;
+                toggleMenu() {
+                    this.menuOpen = !this.menuOpen;
                 }
             }
         });
