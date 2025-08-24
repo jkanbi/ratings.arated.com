@@ -761,13 +761,6 @@
                         <span class="nav-icon">👥</span>
                         <span class="nav-text">All Users</span>
                     </a>
-                    <a href="#" 
-                       @click.prevent="currentView = 'AddUser'; menuOpen = false" 
-                       :class="{ 'active': currentView === 'AddUser' }"
-                       class="nav-item nav-subitem">
-                        <span class="nav-icon">➕</span>
-                        <span class="nav-text">Add User</span>
-                    </a>
                     
                     <a href="#" 
                        @click.prevent="currentView = 'ReviewList'; menuOpen = false" 
@@ -776,13 +769,6 @@
                         <span class="nav-icon">⭐</span>
                         <span class="nav-text">Reviews</span>
                     </a>
-                    <a href="#" 
-                       @click.prevent="currentView = 'AddReview'; menuOpen = false" 
-                       :class="{ 'active': currentView === 'AddReview' }"
-                       class="nav-item nav-subitem">
-                        <span class="nav-icon">➕</span>
-                        <span class="nav-text">Add Review</span>
-                    </a>
                     
                     <a href="#" 
                        @click.prevent="currentView = 'AdminPanel'; menuOpen = false" 
@@ -790,6 +776,27 @@
                        class="nav-item">
                         <span class="nav-icon">⚙️</span>
                         <span class="nav-text">Admin</span>
+                    </a>
+                    <a href="#" 
+                       @click.prevent="currentView = 'AddUser'; menuOpen = false" 
+                       :class="{ 'active': currentView === 'AddUser' }"
+                       class="nav-item nav-subitem">
+                        <span class="nav-icon">➕</span>
+                        <span class="nav-text">Add User</span>
+                    </a>
+                    <a href="#" 
+                       @click.prevent="currentView = 'AddReview'; menuOpen = false" 
+                       :class="{ 'active': currentView === 'AddReview' }"
+                       class="nav-item nav-subitem">
+                        <span class="nav-icon">➕</span>
+                        <span class="nav-text">Add Review</span>
+                    </a>
+                    <a href="#" 
+                       @click.prevent="currentView = 'ImportExport'; menuOpen = false" 
+                       :class="{ 'active': currentView === 'ImportExport' }"
+                       class="nav-item nav-subitem">
+                        <span class="nav-icon">📥📤</span>
+                        <span class="nav-text">Import/Export</span>
                     </a>
                 </nav>
             </div>
