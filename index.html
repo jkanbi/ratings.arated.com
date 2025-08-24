@@ -366,6 +366,7 @@
             <div class="nav-buttons">
                 <button @click="currentView = 'UserList'">Users</button>
                 <button @click="currentView = 'ReviewList'">All Reviews</button>
+                <button @click="currentView = 'AdminPanel'" style="background-color: #6f42c1; color: white;">Admin</button>
             </div>
             <component :is="currentView" 
                        :users="users"
@@ -389,24 +390,7 @@
                 <div>
                     <h2>User Profiles</h2>
                     
-                    <!-- CSV Import/Export Section -->
-                    <div style="margin-bottom: 20px; padding: 15px; background-color: #f0f0f0; border-radius: 5px;">
-                        <h3>Import/Export Users</h3>
-                        <div style="display: flex; gap: 10px; margin-bottom: 10px;">
-                            <button @click="exportToCSV" style="background-color: #28a745; flex: 1;">Export to CSV</button>
-                            <button @click="triggerFileInput" style="background-color: #007bff; flex: 1;">Import from CSV</button>
-                        </div>
-                        <input 
-                            ref="csvFileInput" 
-                            type="file" 
-                            accept=".csv" 
-                            @change="importFromCSV" 
-                            style="display: none;"
-                        />
-                        <p style="font-size: 0.9em; color: #666; margin: 0;">
-                            CSV format: Name,Email (one user per line)
-                        </p>
-                    </div>
+
                     
                     <div v-for="user in users" :key="user.id" class="user-profile" @click="$emit('view-user', user)">
                         <h3>{{ user.name }}</h3>
@@ -434,164 +418,7 @@
                         alert('Please fill in all fields.');
                     }
                 },
-                triggerFileInput() {
-                    this.$refs.csvFileInput.click();
-                },
-                exportToCSV() {
-                    if (this.users.length === 0) {
-                        alert('No users to export.');
-                        return;
-                    }
-                    
-                    // Create CSV content
-                    const csvContent = [
-                        'Name,Email', // Header
-                        ...this.users.map(user => `"${user.name}","${user.email}"`)
-                    ].join('\n');
-                    
-                    // Create and download file
-                    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-                    const link = document.createElement('a');
-                    const url = URL.createObjectURL(blob);
-                    link.setAttribute('href', url);
-                    link.setAttribute('download', `users_${new Date().toISOString().split('T')[0]}.csv`);
-                    link.style.visibility = 'hidden';
-                    document.body.appendChild(link);
-                    link.click();
-                    document.body.removeChild(link);
-                },
-                importFromCSV(event) {
-                    const file = event.target.files[0];
-                    if (!file) return;
-                    
-                    const reader = new FileReader();
-                    reader.onload = (e) => {
-                        try {
-                            const csvContent = e.target.result;
-                            const lines = csvContent.split('\n');
-                            
-                            // Remove empty lines and trim whitespace
-                            const nonEmptyLines = lines.filter(line => line.trim());
-                            
-                            if (nonEmptyLines.length === 0) {
-                                alert('No data found in CSV file.');
-                                return;
-                            }
-                            
-                            const importedUsers = [];
-                            let hasErrors = false;
-                            let lineNumber = 0;
-                            
-                            nonEmptyLines.forEach((line, index) => {
-                                lineNumber = index + 1;
-                                
-                                // Simple CSV parsing - split by comma and handle quotes
-                                let parts = [];
-                                let current = '';
-                                let inQuotes = false;
-                                
-                                for (let i = 0; i < line.length; i++) {
-                                    const char = line[i];
-                                    
-                                    if (char === '"') {
-                                        inQuotes = !inQuotes;
-                                    } else if (char === ',' && !inQuotes) {
-                                        parts.push(current.trim());
-                                        current = '';
-                                    } else {
-                                        current += char;
-                                    }
-                                }
-                                parts.push(current.trim()); // Add the last part
-                                
-                                // Remove quotes from parts
-                                parts = parts.map(part => part.replace(/^"|"$/g, ''));
-                                
-                                console.log(`Line ${lineNumber}:`, parts); // Debug log
-                                
-                                // Check if we have at least 2 parts (name and email)
-                                if (parts.length >= 2) {
-                                    const name = parts[0].trim();
-                                    const email = parts[1].trim();
-                                    
-                                    // Validate name and email are not blank
-                                    if (name && email && name.length > 0 && email.length > 0) {
-                                        // Additional validation: check for whitespace-only strings
-                                        if (name.replace(/\s/g, '').length > 0 && email.replace(/\s/g, '').length > 0) {
-                                            importedUsers.push({ name, email });
-                                            console.log(`Added user: ${name}, ${email}`); // Debug log
-                                        } else {
-                                            hasErrors = true;
-                                            console.error(`Line ${lineNumber}: Name or email contains only whitespace - "${line}"`);
-                                        }
-                                    } else {
-                                        hasErrors = true;
-                                        console.error(`Line ${lineNumber}: Empty name or email - "${line}"`);
-                                    }
-                                } else {
-                                    hasErrors = true;
-                                    console.error(`Line ${lineNumber}: Not enough columns - "${line}"`);
-                                }
-                            });
-                            
-                            console.log(`Total users to import: ${importedUsers.length}`); // Debug log
-                            
-                            if (importedUsers.length > 0) {
-                                // Check for duplicates and filter them out
-                                const existingEmails = this.users.map(user => user.email.toLowerCase());
-                                const newUsers = [];
-                                const duplicates = [];
-                                
-                                importedUsers.forEach(user => {
-                                    if (existingEmails.includes(user.email.toLowerCase())) {
-                                        duplicates.push(user.email);
-                                        console.log(`Skipping duplicate: ${user.email}`);
-                                    } else {
-                                        newUsers.push(user);
-                                    }
-                                });
-                                
-                                // Add only new users
-                                newUsers.forEach(user => {
-                                    this.$emit('add-user', user);
-                                });
-                                
-                                // Prepare result message
-                                let message = '';
-                                if (newUsers.length > 0) {
-                                    message = `Successfully imported ${newUsers.length} new users.`;
-                                } else {
-                                    message = 'No new users imported.';
-                                }
-                                
-                                if (duplicates.length > 0) {
-                                    message += ` ${duplicates.length} duplicate(s) skipped.`;
-                                }
-                                
-                                if (hasErrors) {
-                                    message += ' Some lines had errors and were skipped.';
-                                }
-                                
-                                alert(message + ' Check console for details.');
-                                
-                                if (newUsers.length === 0 && duplicates.length > 0) {
-                                    console.log('All users in CSV were duplicates:', duplicates);
-                                }
-                            } else {
-                                alert('No valid users could be imported from the CSV file. Check console for details.');
-                            }
-                            
-                        } catch (error) {
-                            console.error('Error parsing CSV:', error);
-                            alert('Error parsing CSV file. Please check the format and console for details.');
-                        }
-                    };
-                    
-                    reader.readAsText(file);
-                    
-                    // Reset file input
-                    event.target.value = '';
-                }
+
             }
         };
 
@@ -670,43 +497,7 @@
             props: ['reviews', 'users'],
             template: `
                 <div>
-                    <!-- CSV/JSON Import/Export Section -->
-                    <div style="margin-bottom: 20px; padding: 15px; background-color: #f0f0f0; border-radius: 5px;">
-                        <h3>Import/Export Reviews</h3>
-                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px;">
-                            <div>
-                                <h4 style="margin: 5px 0;">Export</h4>
-                                <button @click="exportToCSV" style="background-color: #28a745; width: 100%; margin-bottom: 5px;">Export to CSV</button>
-                                <button @click="exportToJSON" style="background-color: #17a2b8; width: 100%;">Export to JSON</button>
-                            </div>
-                            <div>
-                                <h4 style="margin: 5px 0;">Import</h4>
-                                <button @click="triggerCSVInput" style="background-color: #007bff; width: 100%; margin-bottom: 5px;">Import from CSV</button>
-                                <button @click="triggerJSONInput" style="background-color: #6f42c1; width: 100%;">Import from JSON</button>
-                            </div>
-                        </div>
-                        
-                        <!-- Hidden file inputs -->
-                        <input 
-                            ref="csvFileInput" 
-                            type="file" 
-                            accept=".csv" 
-                            @change="importFromCSV" 
-                            style="display: none;"
-                        />
-                        <input 
-                            ref="jsonFileInput" 
-                            type="file" 
-                            accept=".json" 
-                            @change="importFromJSON" 
-                            style="display: none;"
-                        />
-                        
-                        <div style="font-size: 0.9em; color: #666;">
-                            <p><strong>CSV format:</strong> Title,Rating,Content,RatingType,ProductBarcode,UserName (one review per line)</p>
-                            <p><strong>JSON format:</strong> Array of review objects with all fields</p>
-                        </div>
-                    </div>
+
                     
                     <div class="review-container">
                         <div v-for="review in reviews" :key="review.id" class="review" @click="$emit('view-review', review)">
@@ -1322,89 +1113,6 @@
                     reader.readAsText(file);
                     event.target.value = '';
                 },
-                importFromJSON(event) {
-                    const file = event.target.files[0];
-                    if (!file) return;
-                    
-                    const reader = new FileReader();
-                    reader.onload = (e) => {
-                        try {
-                            const jsonContent = JSON.parse(e.target.result);
-                            
-                            if (!Array.isArray(jsonContent)) {
-                                alert('JSON file should contain an array of reviews.');
-                                return;
-                            }
-                            
-                            const importedReviews = [];
-                            let hasErrors = false;
-                            
-                            jsonContent.forEach((review, index) => {
-                                try {
-                                    // Validate review structure
-                                    if (review.title && review.rating && review.content) {
-                                        const rating = parseInt(review.rating);
-                                        if (rating >= 1 && rating <= 5) {
-                                            // Find or create user
-                                            let userId = null;
-                                            if (review.userName) {
-                                                let user = this.users.find(u => u.name.toLowerCase() === review.userName.toLowerCase());
-                                                if (!user) {
-                                                    // Create new user if doesn't exist
-                                                    user = { name: review.userName, email: `${review.userName.toLowerCase().replace(/\s+/g, '.')}@imported.com` };
-                                                    this.$emit('add-user', user);
-                                                    // Get the new user ID from the updated users array
-                                                    const newUser = this.users.find(u => u.name.toLowerCase() === review.userName.toLowerCase());
-                                                    userId = newUser ? newUser.id : null;
-                                                } else {
-                                                    userId = newUser.id;
-                                                }
-                                            }
-                                            
-                                            if (userId) {
-                                                importedReviews.push({
-                                                    userId,
-                                                    title: review.title,
-                                                    rating,
-                                                    content: review.content,
-                                                    ratingType: review.ratingType || 'general',
-                                                    productBarcode: review.productBarcode || null
-                                                });
-                                            }
-                                        } else {
-                                            hasErrors = true;
-                                            console.error(`Review ${index + 1}: Invalid rating value`);
-                                        }
-                                    } else {
-                                        hasErrors = true;
-                                        console.error(`Review ${index + 1}: Missing required fields`);
-                                    }
-                                } catch (error) {
-                                    hasErrors = true;
-                                    console.error(`Review ${index + 1}: Error processing`, error);
-                                }
-                            });
-                            
-                            if (importedReviews.length > 0) {
-                                // Add reviews
-                                importedReviews.forEach(review => {
-                                    this.$emit('add-review', review);
-                                });
-                                
-                                alert(`Successfully imported ${importedReviews.length} reviews.`);
-                            } else {
-                                alert('No valid reviews could be imported from the JSON file.');
-                            }
-                            
-                        } catch (error) {
-                            console.error('Error parsing JSON:', error);
-                            alert('Error parsing JSON file. Please check the format.');
-                        }
-                    };
-                    
-                    reader.readAsText(file);
-                    event.target.value = '';
-                },
                 // Trustpilot-style rating methods
                 mounted() {
                     this.$nextTick(() => {
@@ -1518,12 +1226,457 @@
             }
         };
 
+        const AdminPanel = {
+            props: ['users', 'reviews'],
+            template: `
+                <div>
+                    <h2>Admin Panel</h2>
+                    
+                    <!-- Users Import/Export Section -->
+                    <div style="margin-bottom: 30px; padding: 20px; background-color: #f8f9fa; border-radius: 8px; border: 1px solid #dee2e6;">
+                        <h3>👥 User Management</h3>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px;">
+                            <div>
+                                <h4 style="margin: 5px 0; color: #495057;">Export</h4>
+                                <button @click="exportUsersToCSV" style="background-color: #28a745; width: 100%; margin-bottom: 8px;">Export Users to CSV</button>
+                            </div>
+                            <div>
+                                <h4 style="margin: 5px 0; color: #495057;">Import</h4>
+                                <button @click="triggerUserCSVInput" style="background-color: #007bff; width: 100%;">Import Users from CSV</button>
+                            </div>
+                        </div>
+                        
+                        <!-- Hidden file input for users -->
+                        <input 
+                            ref="userCSVFileInput" 
+                            type="file" 
+                            accept=".csv" 
+                            @change="importUsersFromCSV" 
+                            style="display: none;"
+                        />
+                        
+                        <div style="font-size: 0.9em; color: #6c757d;">
+                            <p><strong>CSV format:</strong> Name,Email (one user per line)</p>
+                            <p><strong>Current users:</strong> {{ users.length }}</p>
+                        </div>
+                    </div>
+                    
+                    <!-- Reviews Import/Export Section -->
+                    <div style="margin-bottom: 30px; padding: 20px; background-color: #f8f9fa; border-radius: 8px; border: 1px solid #dee2e6;">
+                        <h3>⭐ Review Management</h3>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px;">
+                            <div>
+                                <h4 style="margin: 5px 0; color: #495057;">Export</h4>
+                                <button @click="exportReviewsToCSV" style="background-color: #28a745; width: 100%; margin-bottom: 8px;">Export Reviews to CSV</button>
+                                <button @click="exportReviewsToJSON" style="background-color: #17a2b8; width: 100%;">Export Reviews to JSON</button>
+                            </div>
+                            <div>
+                                <h4 style="margin: 5px 0; color: #495057;">Import</h4>
+                                <button @click="triggerReviewCSVInput" style="background-color: #007bff; width: 100%; margin-bottom: 8px;">Import Reviews from CSV</button>
+                                <button @click="triggerReviewJSONInput" style="background-color: #6f42c1; width: 100%;">Import Reviews from JSON</button>
+                            </div>
+                        </div>
+                        
+                        <!-- Hidden file inputs for reviews -->
+                        <input 
+                            ref="reviewCSVFileInput" 
+                            type="file" 
+                            accept=".csv" 
+                            @change="importReviewsFromCSV" 
+                            style="display: none;"
+                        />
+                        <input 
+                            ref="reviewJSONFileInput" 
+                            type="file" 
+                            accept=".json" 
+                            @change="importReviewsFromJSON" 
+                            style="display: none;"
+                        />
+                        
+                        <div style="font-size: 0.9em; color: #6c757d;">
+                            <p><strong>CSV format:</strong> Title,Rating,Content,RatingType,ProductBarcode,UserName (one review per line)</p>
+                            <p><strong>JSON format:</strong> Array of review objects with all fields</p>
+                            <p><strong>Current reviews:</strong> {{ reviews.length }}</p>
+                        </div>
+                    </div>
+                    
+                    <!-- System Stats -->
+                    <div style="padding: 20px; background-color: #e9ecef; border-radius: 8px; border: 1px solid #dee2e6;">
+                        <h3>📊 System Statistics</h3>
+                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px;">
+                            <div style="text-align: center; padding: 15px; background-color: white; border-radius: 5px;">
+                                <h4 style="margin: 0; color: #495057;">Total Users</h4>
+                                <p style="font-size: 2em; margin: 5px 0; color: #007bff; font-weight: bold;">{{ users.length }}</p>
+                            </div>
+                            <div style="text-align: center; padding: 15px; background-color: white; border-radius: 5px;">
+                                <h4 style="margin: 0; color: #495057;">Total Reviews</h4>
+                                <p style="font-size: 2em; margin: 5px 0; color: #28a745; font-weight: bold;">{{ reviews.length }}</p>
+                            </div>
+                            <div style="text-align: center; padding: 15px; background-color: white; border-radius: 5px;">
+                                <h4 style="margin: 0; color: #495057;">Average Rating</h4>
+                                <p style="font-size: 2em; margin: 5px 0; color: #ffc107; font-weight: bold;">{{ averageRating }}</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `,
+            computed: {
+                averageRating() {
+                    if (this.reviews.length === 0) return 'N/A';
+                    const total = this.reviews.reduce((sum, review) => sum + review.rating, 0);
+                    return (total / this.reviews.length).toFixed(1);
+                }
+            },
+            methods: {
+                // User methods
+                triggerUserCSVInput() {
+                    this.$refs.userCSVFileInput.click();
+                },
+                exportUsersToCSV() {
+                    if (this.users.length === 0) {
+                        alert('No users to export.');
+                        return;
+                    }
+                    
+                    const csvContent = [
+                        'Name,Email',
+                        ...this.users.map(user => `"${user.name}","${user.email}"`)
+                    ].join('\n');
+                    
+                    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+                    const link = document.createElement('a');
+                    const url = URL.createObjectURL(blob);
+                    link.setAttribute('href', url);
+                    link.setAttribute('download', `users_${new Date().toISOString().split('T')[0]}.csv`);
+                    link.style.visibility = 'hidden';
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                },
+                importUsersFromCSV(event) {
+                    const file = event.target.files[0];
+                    if (!file) return;
+                    
+                    const reader = new FileReader();
+                    reader.onload = (e) => {
+                        try {
+                            const csvContent = e.target.result;
+                            const lines = csvContent.split('\n');
+                            const nonEmptyLines = lines.filter(line => line.trim());
+                            
+                            if (nonEmptyLines.length === 0) {
+                                alert('No data found in CSV file.');
+                                return;
+                            }
+                            
+                            const importedUsers = [];
+                            let hasErrors = false;
+                            
+                            nonEmptyLines.forEach((line, index) => {
+                                if (index === 0) return; // Skip header
+                                
+                                let parts = [];
+                                let current = '';
+                                let inQuotes = false;
+                                
+                                for (let i = 0; i < line.length; i++) {
+                                    const char = line[i];
+                                    if (char === '"') {
+                                        inQuotes = !inQuotes;
+                                    } else if (char === ',' && !inQuotes) {
+                                        parts.push(current.trim());
+                                        current = '';
+                                    } else {
+                                        current += char;
+                                    }
+                                }
+                                parts.push(current.trim());
+                                parts = parts.map(part => part.replace(/^"|"$/g, ''));
+                                
+                                if (parts.length >= 2) {
+                                    const name = parts[0].trim();
+                                    const email = parts[1].trim();
+                                    
+                                    if (name && email && name.length > 0 && email.length > 0) {
+                                        if (name.replace(/\s/g, '').length > 0 && email.replace(/\s/g, '').length > 0) {
+                                            importedUsers.push({ name, email });
+                                        } else {
+                                            hasErrors = true;
+                                        }
+                                    } else {
+                                        hasErrors = true;
+                                    }
+                                } else {
+                                    hasErrors = true;
+                                }
+                            });
+                            
+                            if (importedUsers.length > 0) {
+                                importedUsers.forEach(user => {
+                                    this.$emit('add-user', user);
+                                });
+                                alert(`Successfully imported ${importedUsers.length} users.`);
+                            } else {
+                                alert('No valid users could be imported from the CSV file.');
+                            }
+                            
+                        } catch (error) {
+                            console.error('Error parsing CSV:', error);
+                            alert('Error parsing CSV file. Please check the format.');
+                        }
+                    };
+                    
+                    reader.readAsText(file);
+                    event.target.value = '';
+                },
+                
+                // Review methods
+                triggerReviewCSVInput() {
+                    this.$refs.reviewCSVFileInput.click();
+                },
+                triggerReviewJSONInput() {
+                    this.$refs.reviewJSONFileInput.click();
+                },
+                exportReviewsToCSV() {
+                    if (this.reviews.length === 0) {
+                        alert('No reviews to export.');
+                        return;
+                    }
+                    
+                    const csvContent = [
+                        'Title,Rating,Content,RatingType,ProductBarcode,UserName,Date',
+                        ...this.reviews.map(review => {
+                            const user = this.users.find(u => u.id === review.userId);
+                            const userName = user ? user.name : 'Unknown User';
+                            const date = new Date(review.id).toISOString().split('T')[0];
+                            const productBarcode = review.productBarcode || '';
+                            const ratingType = review.ratingType || 'general';
+                            
+                            const escapedContent = review.content.replace(/"/g, '""');
+                            const escapedTitle = review.title.replace(/"/g, '""');
+                            
+                            return `"${escapedTitle}",${review.rating},"${escapedContent}","${ratingType}","${productBarcode}","${userName}","${date}"`;
+                        })
+                    ].join('\n');
+                    
+                    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+                    const link = document.createElement('a');
+                    const url = URL.createObjectURL(blob);
+                    link.setAttribute('href', url);
+                    link.setAttribute('download', `reviews_${new Date().toISOString().split('T')[0]}.csv`);
+                    link.style.visibility = 'hidden';
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                },
+                exportReviewsToJSON() {
+                    if (this.reviews.length === 0) {
+                        alert('No reviews to export.');
+                        return;
+                    }
+                    
+                    const enrichedReviews = this.reviews.map(review => {
+                        const user = this.users.find(u => u.id === review.userId);
+                        return {
+                            ...review,
+                            userName: user ? user.name : 'Unknown User',
+                            date: new Date(review.id).toISOString()
+                        };
+                    });
+                    
+                    const jsonContent = JSON.stringify(enrichedReviews, null, 2);
+                    const blob = new Blob([jsonContent], { type: 'application/json;charset=utf-8;' });
+                    const link = document.createElement('a');
+                    const url = URL.createObjectURL(blob);
+                    link.setAttribute('href', url);
+                    link.setAttribute('download', `reviews_${new Date().toISOString().split('T')[0]}.json`);
+                    link.style.visibility = 'hidden';
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                },
+                importReviewsFromCSV(event) {
+                    const file = event.target.files[0];
+                    if (!file) return;
+                    
+                    const reader = new FileReader();
+                    reader.onload = (e) => {
+                        try {
+                            const csvContent = e.target.result;
+                            const lines = csvContent.split('\n');
+                            const nonEmptyLines = lines.filter(line => line.trim());
+                            
+                            if (nonEmptyLines.length === 0) {
+                                alert('No data found in CSV file.');
+                                return;
+                            }
+                            
+                            const importedReviews = [];
+                            let hasErrors = false;
+                            
+                            nonEmptyLines.forEach((line, index) => {
+                                if (index === 0) return;
+                                
+                                let parts = [];
+                                let current = '';
+                                let inQuotes = false;
+                                
+                                for (let i = 0; i < line.length; i++) {
+                                    const char = line[i];
+                                    if (char === '"') {
+                                        inQuotes = !inQuotes;
+                                    } else if (char === ',' && !inQuotes) {
+                                        parts.push(current.trim());
+                                        current = '';
+                                    } else {
+                                        current += char;
+                                    }
+                                }
+                                parts.push(current.trim());
+                                parts = parts.map(part => part.replace(/^"|"$/g, ''));
+                                
+                                if (parts.length >= 3) {
+                                    const title = parts[0].trim();
+                                    const rating = parseInt(parts[1]);
+                                    const content = parts[2].trim();
+                                    const ratingType = parts[3] || 'general';
+                                    const productBarcode = parts[4] || '';
+                                    const userName = parts[5] || '';
+                                    
+                                    if (title && !isNaN(rating) && rating >= 1 && rating <= 5 && content) {
+                                        let userId = null;
+                                        if (userName) {
+                                            let user = this.users.find(u => u.name.toLowerCase() === userName.toLowerCase());
+                                            if (!user) {
+                                                user = { name: userName, email: `${userName.toLowerCase().replace(/\s+/g, '.')}@imported.com` };
+                                                this.$emit('add-user', user);
+                                                const newUser = this.users.find(u => u.name.toLowerCase() === userName.toLowerCase());
+                                                userId = newUser ? newUser.id : null;
+                                            } else {
+                                                userId = user.id;
+                                            }
+                                        }
+                                        
+                                        if (userId) {
+                                            importedReviews.push({
+                                                userId,
+                                                title,
+                                                rating,
+                                                content,
+                                                ratingType,
+                                                productBarcode: productBarcode || null
+                                            });
+                                        }
+                                    } else {
+                                        hasErrors = true;
+                                    }
+                                } else {
+                                    hasErrors = true;
+                                }
+                            });
+                            
+                            if (importedReviews.length > 0) {
+                                importedReviews.forEach(review => {
+                                    this.$emit('add-review', review);
+                                });
+                                alert(`Successfully imported ${importedReviews.length} reviews.`);
+                            } else {
+                                alert('No valid reviews could be imported from the CSV file.');
+                            }
+                            
+                        } catch (error) {
+                            console.error('Error parsing CSV:', error);
+                            alert('Error parsing CSV file. Please check the format.');
+                        }
+                    };
+                    
+                    reader.readAsText(file);
+                    event.target.value = '';
+                },
+                importReviewsFromJSON(event) {
+                    const file = event.target.files[0];
+                    if (!file) return;
+                    
+                    const reader = new FileReader();
+                    reader.onload = (e) => {
+                        try {
+                            const jsonContent = JSON.parse(e.target.result);
+                            
+                            if (!Array.isArray(jsonContent)) {
+                                alert('JSON file should contain an array of reviews.');
+                                return;
+                            }
+                            
+                            const importedReviews = [];
+                            let hasErrors = false;
+                            
+                            jsonContent.forEach((review, index) => {
+                                try {
+                                    if (review.title && review.rating && review.content) {
+                                        const rating = parseInt(review.rating);
+                                        if (rating >= 1 && rating <= 5) {
+                                            let userId = null;
+                                            if (review.userName) {
+                                                let user = this.users.find(u => u.name.toLowerCase() === review.userName.toLowerCase());
+                                                if (!user) {
+                                                    user = { name: review.userName, email: `${review.userName.toLowerCase().replace(/\s+/g, '.')}@imported.com` };
+                                                    this.$emit('add-user', user);
+                                                    const newUser = this.users.find(u => u.name.toLowerCase() === review.userName.toLowerCase());
+                                                    userId = newUser ? newUser.id : null;
+                                                } else {
+                                                    userId = user.id;
+                                                }
+                                            }
+                                            
+                                            if (userId) {
+                                                importedReviews.push({
+                                                    userId,
+                                                    title: review.title,
+                                                    rating,
+                                                    content: review.content,
+                                                    ratingType: review.ratingType || 'general',
+                                                    productBarcode: review.productBarcode || null
+                                                });
+                                            }
+                                        } else {
+                                            hasErrors = true;
+                                        }
+                                    } else {
+                                        hasErrors = true;
+                                    }
+                                } catch (error) {
+                                    hasErrors = true;
+                                }
+                            });
+                            
+                            if (importedReviews.length > 0) {
+                                importedReviews.forEach(review => {
+                                    this.$emit('add-review', review);
+                                });
+                                alert(`Successfully imported ${importedReviews.length} reviews.`);
+                            } else {
+                                alert('No valid reviews could be imported from the JSON file.');
+                            }
+                            
+                        } catch (error) {
+                            console.error('Error parsing JSON:', error);
+                            alert('Error parsing JSON file. Please check the format.');
+                        }
+                    };
+                    
+                    reader.readAsText(file);
+                    event.target.value = '';
+                }
+            }
+        };
+
         const app = Vue.createApp({
             components: {
                 UserList,
                 UserDetail,
                 ReviewList,
-                ReviewDetail
+                ReviewDetail,
+                AdminPanel
             },
             data() {
                 return {
