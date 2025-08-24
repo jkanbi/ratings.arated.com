@@ -156,6 +156,95 @@
         	background-color: red;
         }
         
+        .trustpilot-rating {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin: 20px 0;
+        }
+        
+        .rating-circles {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+        
+        .rating-display-inline {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-left: 20px;
+        }
+        
+        .rating-display-inline .rating-letter {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 18px;
+            background-color: #f8f9fa;
+            border: 3px solid #ddd;
+            color: #666;
+        }
+        
+        .rating-display-inline .rating-letter.rating-A { 
+            background-color: #4caf50; 
+            color: white;
+            border-color: #4caf50;
+        }
+        .rating-display-inline .rating-letter.rating-B { 
+            background-color: #b8e04d; 
+            color: white;
+            border-color: #b8e04d;
+        }
+        .rating-display-inline .rating-letter.rating-C { 
+            background-color: #ffdb4d; 
+            color: white;
+            border-color: #ffdb4d;
+        }
+        .rating-display-inline .rating-letter.rating-D { 
+            background-color: #ff964d; 
+            color: white;
+            border-color: #ff964d;
+        }
+        .rating-display-inline .rating-letter.rating-E { 
+            background-color: #ff4d4d; 
+            color: white;
+            border-color: #ff4d4d;
+        }
+        
+        .rating-display-inline .emoji {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 52px;
+            background-color: #f8f9fa;
+            border: 3px solid #ddd;
+            line-height: 1;
+        }
+        
+        .circle {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            border: 3px solid #ddd;
+            background-color: #f8f9fa;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+        
+        .circle:hover {
+            transform: scale(1.1);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+        }
+        
         .slider-container {
 			display: flex; /* Use flexbox for better control over inline elements */
  			align-items: center; /* Vertically centers the children */
@@ -731,17 +820,46 @@
                             </div>
                         </div>
                         
-                        <div class="slider-container">
-                            <span class="slider-label">E</span>
-                            <input v-model="newReview.rating" type="range" min="1" max="5" step="1" />
-                            <span class="slider-label">A</span>
-                        
-							<div class="rating-display">
-								<span class="rating-letter" :class="'rating-' + getRatingLetter(newReview.rating)">
-									{{ getRatingLetter(newReview.rating) }}
-								</span>
-								<span class="emoji">{{ getRatingEmoji(newReview.rating) }}</span>
-							</div>
+                        <div class="trustpilot-rating">
+                            <div class="rating-circles">
+                                <div class="circle" 
+                                     data-rating="1" 
+                                     @click="selectRating(1)"
+                                     @mouseenter="hoverRating(1)"
+                                     @mouseleave="clearHover()">
+                                </div>
+                                <div class="circle" 
+                                     data-rating="2" 
+                                     @click="selectRating(2)"
+                                     @mouseenter="hoverRating(2)"
+                                     @mouseleave="clearHover()">
+                                </div>
+                                <div class="circle" 
+                                     data-rating="3" 
+                                     @click="selectRating(3)"
+                                     @mouseenter="hoverRating(3)"
+                                     @mouseleave="clearHover()">
+                                </div>
+                                <div class="circle" 
+                                     data-rating="4" 
+                                     @click="selectRating(4)"
+                                     @mouseenter="hoverRating(4)"
+                                     @mouseleave="clearHover()">
+                                </div>
+                                <div class="circle" 
+                                     data-rating="5" 
+                                     @click="selectRating(5)"
+                                     @mouseenter="hoverRating(5)"
+                                     @mouseleave="clearHover()">
+                                </div>
+                                
+                                <div class="rating-display-inline">
+                                    <span class="rating-letter" :class="'rating-' + getRatingLetter(tempRating || newReview.rating)">
+                                        {{ getRatingLetter(tempRating || newReview.rating) }}
+                                    </span>
+                                    <span class="emoji">{{ getRatingEmoji(tempRating || newReview.rating) }}</span>
+                                </div>
+                            </div>
                         </div>
                         
                         <textarea v-model="newReview.content" placeholder="Write your review here..."></textarea>
@@ -775,7 +893,8 @@
                     showScanner: false,
                     barcodeBuffer: '',
                     barcodeTimeout: null,
-                    imagePreview: null
+                    imagePreview: null,
+                    tempRating: 3
                 };
             },
             methods: {
@@ -1238,7 +1357,7 @@
                                                     const newUser = this.users.find(u => u.name.toLowerCase() === review.userName.toLowerCase());
                                                     userId = newUser ? newUser.id : null;
                                                 } else {
-                                                    userId = user.id;
+                                                    userId = newUser.id;
                                                 }
                                             }
                                             
@@ -1285,6 +1404,47 @@
                     
                     reader.readAsText(file);
                     event.target.value = '';
+                },
+                // Trustpilot-style rating methods
+                mounted() {
+                    this.$nextTick(() => {
+                        this.updateCircleColors(this.newReview.rating);
+                    });
+                },
+                selectRating(rating) {
+                    this.newReview.rating = rating;
+                    this.updateCircleColors(rating);
+                },
+                hoverRating(rating) {
+                    this.updateCircleColors(rating);
+                    // Temporarily update the display to show what this rating would be
+                    this.tempRating = rating;
+                },
+                clearHover() {
+                    this.updateCircleColors(this.newReview.rating);
+                    // Reset the temporary rating display
+                    this.tempRating = null;
+                },
+                updateCircleColors(rating) {
+                    const circles = this.$el.querySelectorAll('.circle');
+                    const colors = {
+                        1: '#ff4d4d',    // red
+                        2: '#ff964d',    // orange
+                        3: '#ffdb4d',    // amber
+                        4: '#b8e04d',    // light green
+                        5: '#4caf50'     // dark green
+                    };
+                    
+                    circles.forEach((circle, index) => {
+                        const circleRating = index + 1;
+                        if (circleRating <= rating) {
+                            circle.style.backgroundColor = colors[rating];
+                            circle.style.borderColor = colors[rating];
+                        } else {
+                            circle.style.backgroundColor = '#f8f9fa';
+                            circle.style.borderColor = '#ddd';
+                        }
+                    });
                 }
             }
         };
