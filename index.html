@@ -814,7 +814,10 @@
                        @add-review="addReview"
                        @remove-user="removeUser"
                        @remove-review="removeReview"
-                       @back-to-list="backToList"></component>
+                       @back-to-list="backToList"
+                       @clear-all-data="clearAllData"
+                       @clear-users="clearUsers"
+                       @clear-reviews="clearReviews"></component>
         </div>
     </div>
 
@@ -2067,6 +2070,35 @@
                             </div>
                         </div>
                     </div>
+                    
+                    <!-- Local Storage Management -->
+                    <div style="margin-top: 30px; padding: 20px; background-color: #fff3cd; border-radius: 8px; border: 1px solid #ffeaa7;">
+                        <h3>🗄️ Local Storage Management</h3>
+                        <div style="margin-bottom: 15px;">
+                            <p style="color: #856404; margin: 5px 0; font-size: 0.9em;">
+                                <strong>⚠️ Warning:</strong> This action will permanently delete all locally stored data including users and reviews. This action cannot be undone.
+                            </p>
+                        </div>
+                        <div style="display: flex; gap: 15px; flex-wrap: wrap;">
+                            <button @click="clearLocalStorage" style="background-color: #dc3545; color: white; border: none; padding: 12px 24px; border-radius: 5px; cursor: pointer; font-weight: bold;">
+                                🗑️ Clear All Local Storage
+                            </button>
+                            <button @click="clearUsersOnly" style="background-color: #fd7e14; color: white; border: none; padding: 12px 24px; border-radius: 5px; cursor: pointer; font-weight: bold;">
+                                👥 Clear Users Only
+                            </button>
+                            <button @click="clearReviewsOnly" style="background-color: #fd7e14; color: white; border: none; padding: 12px 24px; border-radius: 5px; cursor: pointer; font-weight: bold;">
+                                ⭐ Clear Reviews Only
+                            </button>
+                        </div>
+                        <div style="margin-top: 15px; font-size: 0.9em; color: #856404;">
+                            <p><strong>Storage Info:</strong></p>
+                            <ul style="margin: 5px 0; padding-left: 20px;">
+                                <li>Users in storage: {{ users.length }}</li>
+                                <li>Reviews in storage: {{ reviews.length }}</li>
+                                <li>Total storage size: {{ storageSize }}</li>
+                            </ul>
+                        </div>
+                    </div>
                 </div>
             `,
             computed: {
@@ -2074,6 +2106,19 @@
                     if (this.reviews.length === 0) return 'N/A';
                     const total = this.reviews.reduce((sum, review) => sum + review.rating, 0);
                     return (total / this.reviews.length).toFixed(1);
+                },
+                storageSize() {
+                    const usersSize = new Blob([JSON.stringify(this.users)]).size;
+                    const reviewsSize = new Blob([JSON.stringify(this.reviews)]).size;
+                    const totalSize = usersSize + reviewsSize;
+                    
+                    if (totalSize < 1024) {
+                        return `${totalSize} bytes`;
+                    } else if (totalSize < 1024 * 1024) {
+                        return `${(totalSize / 1024).toFixed(1)} KB`;
+                    } else {
+                        return `${(totalSize / (1024 * 1024)).toFixed(1)} MB`;
+                    }
                 }
             },
             methods: {
@@ -2605,6 +2650,30 @@
                     
                     reader.readAsText(file);
                     event.target.value = '';
+                },
+                
+                // Local Storage Management Methods
+                clearLocalStorage() {
+                    if (confirm('⚠️ WARNING: This will permanently delete ALL locally stored data (users and reviews). This action cannot be undone.\n\nAre you sure you want to continue?')) {
+                        localStorage.removeItem('users');
+                        localStorage.removeItem('reviews');
+                        this.$emit('clear-all-data');
+                        alert('✅ All local storage data has been cleared successfully.');
+                    }
+                },
+                clearUsersOnly() {
+                    if (confirm('⚠️ WARNING: This will permanently delete ALL locally stored users. This action cannot be undone.\n\nAre you sure you want to continue?')) {
+                        localStorage.removeItem('users');
+                        this.$emit('clear-users');
+                        alert('✅ All users have been cleared from local storage successfully.');
+                    }
+                },
+                clearReviewsOnly() {
+                    if (confirm('⚠️ WARNING: This will permanently delete ALL locally stored reviews. This action cannot be undone.\n\nAre you sure you want to continue?')) {
+                        localStorage.removeItem('reviews');
+                        this.$emit('clear-reviews');
+                        alert('✅ All reviews have been cleared from local storage successfully.');
+                    }
                 }
             }
         };
@@ -2770,6 +2839,29 @@
                                 }
                             }
                         }
+                    }
+                },
+                
+                // Local Storage Clear Methods
+                clearAllData() {
+                    this.users = [];
+                    this.reviews = [];
+                    this.selectedUser = null;
+                    this.selectedReview = null;
+                    this.currentView = 'ReviewList';
+                },
+                clearUsers() {
+                    this.users = [];
+                    this.reviews = []; // Also clear reviews since they depend on users
+                    this.selectedUser = null;
+                    this.selectedReview = null;
+                    this.currentView = 'ReviewList';
+                },
+                clearReviews() {
+                    this.reviews = [];
+                    this.selectedReview = null;
+                    if (this.currentView === 'ReviewDetail') {
+                        this.currentView = 'ReviewList';
                     }
                 }
             },
