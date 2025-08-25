@@ -2758,6 +2758,16 @@
                 toggleMenu() {
                     this.menuOpen = !this.menuOpen;
                 },
+                closeMenuOnOutsideClick(event) {
+                    // Check if the click is outside the menu and menu toggle button
+                    const menuToggle = event.target.closest('.menu-toggle');
+                    const navMenu = event.target.closest('.nav-menu');
+                    
+                    // If click is not on menu toggle or inside nav menu, close the menu
+                    if (!menuToggle && !navMenu && this.menuOpen) {
+                        this.menuOpen = false;
+                    }
+                },
                 
                 // Auto-load CSV files if no data exists
                 async autoLoadCSVFiles() {
@@ -2868,6 +2878,13 @@
             mounted() {
                 // Auto-load CSV files if no data exists
                 this.autoLoadCSVFiles();
+                
+                // Add event listener to close menu when clicking outside
+                document.addEventListener('click', this.closeMenuOnOutsideClick);
+            },
+            beforeUnmount() {
+                // Clean up event listener when component is destroyed
+                document.removeEventListener('click', this.closeMenuOnOutsideClick);
             }
         });
 
